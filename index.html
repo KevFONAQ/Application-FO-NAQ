@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Base Documentaire FO Nouvelle-Aquitaine</title>
+  <style>
+    body { 
+      background: #cbd5e1; 
+      margin: 0; 
+      padding: 20px 0; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+    }
+    #app-container { 
+      max-width: 420px; 
+      margin: 0 auto; 
+      background: #f4f5f7; 
+      min-height: 90vh; 
+      border-radius: 16px; 
+      overflow: hidden; 
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
+      box-sizing: border-box; 
+    }
+    .fo-header { 
+      background: #C8001E; 
+      color: white; 
+      padding: 20px 15px; 
+      text-align: center; 
+    }
+    .header-main { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 12px; 
+    }
+    .fo-logo-badge { 
+      background: white; 
+      color: #C8001E; 
+      font-weight: 950; 
+      font-size: 22px; 
+      padding: 4px 12px; 
+      border-radius: 6px; 
+      line-height: 1; 
+    }
+    .header-text h1 { 
+      margin: 0; 
+      font-size: 15px; 
+      font-weight: 900; 
+      letter-spacing: 0.5px; 
+    }
+    .header-text .subtitle { 
+      margin: 0; 
+      font-size: 13px; 
+      opacity: 0.95; 
+      font-weight: 500; 
+    }
+    .badge { 
+      display: inline-block; 
+      background: rgba(255,255,255,0.2); 
+      padding: 4px 12px; 
+      border-radius: 20px; 
+      font-size: 11px; 
+      font-weight: bold; 
+      text-transform: uppercase; 
+      margin-top: 10px; 
+    }
+    .demo-switcher { 
+      background: #e2e8f0; 
+      padding: 8px; 
+      display: flex; 
+      gap: 6px; 
+      justify-content: center; 
+    }
+    .btn-toggle { 
+      font-size: 11px; 
+      padding: 6px 12px; 
+      border: none; 
+      border-radius: 4px; 
+      background: white; 
+      color: #333; 
+      font-weight: bold; 
+      cursor: pointer; 
+    }
+    .btn-toggle.active { 
+      background: #C8001E; 
+      color: white; 
+    }
+    .content-body { 
+      padding: 15px; 
+    }
+    .alert-box { 
+      background: #fffbeb; 
+      border: 1px solid #fef3c7; 
+      color: #92400e; 
+      padding: 16px; 
+      border-radius: 12px; 
+      margin-bottom: 20px; 
+      font-size: 13px; 
+    }
+    .alert-box h3 { 
+      margin: 0 0 6px 0; 
+      font-size: 14px; 
+    }
+    .btn-action-red { 
+      background: #C8001E; 
+      color: white; 
+      border: none; 
+      padding: 10px; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      font-weight: bold; 
+      width: 100%; 
+      font-size: 12px; 
+      margin-top: 10px; 
+    }
+    .search-container input { 
+      width: 100%; 
+      padding: 12px; 
+      border-radius: 12px; 
+      border: 1px solid #e2e8f0; 
+      box-sizing: border-box; 
+      font-size: 14px; 
+      margin-bottom: 20px; 
+      outline: none; 
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02); 
+    }
+    .section-title { 
+      font-size: 11px; 
+      color: #718096; 
+      text-transform: uppercase; 
+      margin: 0 0 12px 0; 
+      font-weight: bold; 
+    }
+    .cards-list { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 12px; 
+    }
+    .card-white { 
+      background: white; 
+      padding: 16px; 
+      border-radius: 12px; 
+      border-left: 4px solid #C8001E; 
+      box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
+    }
+    .card-header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: flex-start; 
+    }
+    .card-header h4 { 
+      margin: 0; 
+      font-size: 14px; 
+      color: #1a202c; 
+      font-weight: bold; 
+    }
+    .badge-status { 
+      font-size: 10px; 
+      font-weight: bold; 
+      padding: 2px 6px; 
+      border-radius: 20px; 
+    }
+    .badge-status.public { 
+      background: #fef2f2; 
+      color: #C8001E; 
+    }
+    .badge-status.premium { 
+      background: #fffbeb; 
+      color: #b45309; 
+    }
+    .card-white .ref { 
+      font-size: 10px; 
+      color: #718096; 
+      font-style: italic; 
+      margin: 4px 0; 
+    }
+    .card-white .desc { 
+      font-size: 12px; 
+      color: #4a5568; 
+      margin: 0 0 12px 0; 
+      line-height: 1.4; 
+    }
+    .btn-view { 
+      background: #1a202c; 
+      color: white; 
+      border: none; 
+      width: 100%; 
+      padding: 10px; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      font-size: 12px; 
+      font-weight: bold; 
+    }
+    .admin-box { 
+      margin-top: 30px; 
+      background: white; 
+      padding: 15px; 
+      border-radius: 12px; 
+      border: 2px dashed #cbd5e1; 
+    }
+    .admin-box h3 { 
+      margin: 0 0 6px 0; 
+      font-size: 14px; 
+      color: #0f766e; 
+    }
+    .admin-intro { 
+      font-size: 12px; 
+      color: #64748b; 
+      margin: 0 0 12px 0; 
+    }
+    .admin-row { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      background: #f8fafc; 
+      padding: 10px; 
+      border-radius: 8px; 
+      border: 1px solid #e2e8f0; 
+    }
+    .member-name { 
+      margin: 0; 
+      font-size: 13px; 
+      font-weight: bold; 
+      color: #334155; 
+    }
+    .member-dept { 
+      margin: 0; 
+      font-size: 11px; 
+      color: #64748b; 
+    }
+    .btn-approve { 
+      background: #16a34a; 
+      color: white; 
+      border: none; 
+      padding: 6px 12px; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      font-size: 12px; 
+      font-weight: bold; 
+    }
+  </style>
+</head>
+<body>
+
+<div id="app-container">
+  
+  <header class="fo-header">
+    <div class="header-main">
+      <div class="fo-logo-badge">FO</div>
+      <div class="header-text">
+        <h1>BASE DOCUMENTAIRE FO</h1>
+        <p class="subtitle">Nouvelle-Aquitaine</p>
+      </div>
+    </div>
+    <div id="role-badge" class="badge">Espace Invité</div>
+  </header>
+
+  <div class="demo-switcher">
+    <button onclick="changerRole('invite')" id="btn-invite" class="btn-toggle active">Invité</button>
+    <button onclick="changerRole('adherent')" id="btn-adherent" class="btn-toggle">Adhérent</button>
+    <button onclick="changerRole('admin')" id="btn-admin" class="btn-toggle">Admin (Moi)</button>
+  </div>
+
+  <div class="content-body">
+    
+    <div id="block-invite" class="alert-box">
+      <h3>🔒 Accès Restreint aux Militants</h3>
+      <p>Vous n'avez pas encore validé votre adhésion. Les fiches d'analyse juridique FO et les accords d'entreprise régionaux sont réservés aux adhérents.</p>
+      <button onclick="alert('Votre demande d'adhésion a été transmise aux administrateurs FO Nouvelle-Aquitaine.')" class="btn-action-red">
+        Demander la validation de mon adhésion FO
+      </button>
+    </div>
+
+    <div id="block-search" class="search-container" style="display: none;">
+      <input type="text" id="search-input" oninput="filtrerDocuments()" placeholder="🔍 Rechercher un mot-clé, article, thème (ex: heures)...">
+    </div>
+
+    <h2 class="section-title" id="sec-title">Document d'information public</h2>
+    
+    <div class="cards-list">
+      
+      <div class="card-white" id="doc-1">
+        <div class="card-header">
+          <h4>Livret d'accueil des CSE de la Région</h4>
+          <span class="badge-status public">🔓 Public</span>
+        </div>
+        <p class="ref">Réf: FO Régional - Guide 2026</p>
+        <p class="desc">Cadre d'action des élus, obligations de l'employeur et bases du mandat syndical en région.</p>
+        <button onclick="simulerLecture('Livret d'accueil des CSE')" class="btn-view">👁️ Consulter le texte de référence</button>
+      </div>
+
+      <div class="card-white target-premium" id="doc-2" style="display: none;">
+        <div class="card-header">
+          <h4>Crédit d'heures de délégation</h4>
+          <span class="badge-status premium">🛡️ FO Premium</span>
+        </div>
+        <p class="ref">Réf: Art. L2315-7 Code du travail</p>
+        <p class="desc">Règles d'utilisation, bons de délégation régionaux et fiches de riposte face aux contestations de l'employeur.</p>
+        <button onclick="simulerLecture('Crédit d'heures de délégation')" class="btn-view">👁️ Consulter la fiche juridique</button>
+      </div>
+
+      <div class="card-white target-premium" id="doc-3" style="display: none;">
+        <div class="card-header">
+          <h4>Orientations stratégiques du CSE</h4>
+          <span class="badge-status premium">🛡️ FO Premium</span>
+        </div>
+        <p class="ref">Réf: Art. L2312-8 Code du travail</p>
+        <p class="desc">Dossier méthodologique pour aider les élus à formuler un avis motivé solide face aux projets de la direction.</p>
+        <button onclick="simulerLecture('Orientations stratégiques du CSE')" class="btn-view">👁️ Consulter le dossier d'analyse</button>
+      </div>
+
+    </div>
+
+    <div id="block-admin" class="admin-box" style="display: none;">
+      <h3>⚙️ Espace Validation Régionale FO</h3>
+      <p class="admin-intro">Demandes d'accès reçues depuis les départements de la région :</p>
+      <div class="admin-row">
+        <div>
+          <p class="member-name">Camille Martin</p>
+          <p class="member-dept">Union Départementale - Gironde</p>
+        </div>
+        <button onclick="alert('Camille Martin a été validée. Son accès FO Premium est actif.')" class="btn-approve">Valider l'Adhérent</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function changerRole(role) {
+    document.getElementById('btn-invite').classList.remove('active');
+    document.getElementById('btn-adherent').classList.remove('active');
+    document.getElementById('btn-admin').classList.remove('active');
+    
+    document.getElementById('btn-' + role).classList.add('active');
+    document.getElementById('role-badge').innerText = "Espace " + role;
+
+    const blockInvite = document.getElementById('block-invite');
+    const blockSearch = document.getElementById('block-search');
+    const blockAdmin = document.getElementById('block-admin');
+    const secTitle = document.getElementById('sec-title');
+    const premiumDocs = document.querySelectorAll('.target-premium');
+
+    if (role === 'invite') {
+      blockInvite.style.display = 'block';
+      blockSearch.style.display = 'none';
+      blockAdmin.style.display = 'none';
+      secTitle.innerText = "Document d'information public";
+      premiumDocs.forEach(doc => doc.style.display = 'none');
+    } 
+    else if (role === 'adherent') {
+      blockInvite.style.display = 'none';
+      blockSearch.style.display = 'block';
+      blockAdmin.style.display = 'none';
+      secTitle.innerText = "Fiches juridiques & Accords régionaux";
+      premiumDocs.forEach(doc => doc.style.display = 'block');
+    } 
+    else if (role === 'admin') {
+      blockInvite.style.display = 'none';
+      blockSearch.style.display = 'block';
+      blockAdmin.style.display = 'block';
+      secTitle.innerText = "Fiches juridiques & Accords régionaux";
+      premiumDocs.forEach(doc => doc.style.display = 'block');
+    }
+  }
+
+  function filtrerDocuments() {
+    const query = document.getElementById('search-input').value.toLowerCase();
+    const doc1 = document.getElementById('doc-1');
+    const doc2 = document.getElementById('doc-2');
+    const doc3 = document.getElementById('doc-3');
+
+    if (doc1) doc1.style.display = "livret accueil cse guide regional".includes(query) ? "block" : "none";
+    if (doc2 && !document.getElementById('btn-invite').classList.contains('active')) {
+      doc2.style.display = "credit heures delegation travail".includes(query) ? "block" : "none";
+    }
+    if (doc3 && !document.getElementById('btn-invite').classList.contains('active')) {
+      doc3.style.display = "orientations strategies consultation avis".includes(query) ? "block" : "none";
+    }
+  }
+
+  function simulerLecture(titre) {
+    alert("🛡️ SÉCURITÉ FO ACTIVÉE\n\nLe document '" + titre + "' est affiché via un rendu d'image sécurisé (Canvas).\n\nLes fonctions de téléchargement, d'impression et le clic droit sont totalement neutralisés.");
+  }
+</script>
+
+</body>
+</html>
