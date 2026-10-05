@@ -4,385 +4,194 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Base Documentaire FO Nouvelle-Aquitaine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { 
-      background: #cbd5e1; 
-      margin: 0; 
-      padding: 20px 0; 
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-    }
-    #app-container { 
-      max-width: 420px; 
-      margin: 0 auto; 
-      background: #f4f5f7; 
-      min-height: 90vh; 
-      border-radius: 16px; 
-      overflow: hidden; 
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
-      box-sizing: border-box; 
-    }
-    .fo-header { 
-      background: #C8001E; 
-      color: white; 
-      padding: 20px 15px; 
-      text-align: center; 
-    }
-    .header-main { 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      gap: 12px; 
-    }
-    .fo-logo-badge { 
-      background: white; 
-      color: #C8001E; 
-      font-weight: 950; 
-      font-size: 22px; 
-      padding: 4px 12px; 
-      border-radius: 6px; 
-      line-height: 1; 
-    }
-    .header-text h1 { 
-      margin: 0; 
-      font-size: 15px; 
-      font-weight: 900; 
-      letter-spacing: 0.5px; 
-    }
-    .header-text .subtitle { 
-      margin: 0; 
-      font-size: 13px; 
-      opacity: 0.95; 
-      font-weight: 500; 
-    }
-    .badge { 
-      display: inline-block; 
-      background: rgba(255,255,255,0.2); 
-      padding: 4px 12px; 
-      border-radius: 20px; 
-      font-size: 11px; 
-      font-weight: bold; 
-      text-transform: uppercase; 
-      margin-top: 10px; 
-    }
-    .demo-switcher { 
-      background: #e2e8f0; 
-      padding: 8px; 
-      display: flex; 
-      gap: 6px; 
-      justify-content: center; 
-    }
-    .btn-toggle { 
-      font-size: 11px; 
-      padding: 6px 12px; 
-      border: none; 
-      border-radius: 4px; 
-      background: white; 
-      color: #333; 
-      font-weight: bold; 
-      cursor: pointer; 
-    }
-    .btn-toggle.active { 
-      background: #C8001E; 
-      color: white; 
-    }
-    .content-body { 
-      padding: 15px; 
-    }
-    .alert-box { 
-      background: #fffbeb; 
-      border: 1px solid #fef3c7; 
-      color: #92400e; 
-      padding: 16px; 
-      border-radius: 12px; 
-      margin-bottom: 20px; 
-      font-size: 13px; 
-    }
-    .alert-box h3 { 
-      margin: 0 0 6px 0; 
-      font-size: 14px; 
-    }
-    .btn-action-red { 
-      background: #C8001E; 
-      color: white; 
-      border: none; 
-      padding: 10px; 
-      border-radius: 6px; 
-      cursor: pointer; 
-      font-weight: bold; 
-      width: 100%; 
-      font-size: 12px; 
-      margin-top: 10px; 
-    }
-    .search-container input { 
-      width: 100%; 
-      padding: 12px; 
-      border-radius: 12px; 
-      border: 1px solid #e2e8f0; 
-      box-sizing: border-box; 
-      font-size: 14px; 
-      margin-bottom: 20px; 
-      outline: none; 
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02); 
-    }
-    .section-title { 
-      font-size: 11px; 
-      color: #718096; 
-      text-transform: uppercase; 
-      margin: 0 0 12px 0; 
-      font-weight: bold; 
-    }
-    .cards-list { 
-      display: flex; 
-      flex-direction: column; 
-      gap: 12px; 
-    }
-    .card-white { 
-      background: white; 
-      padding: 16px; 
-      border-radius: 12px; 
-      border-left: 4px solid #C8001E; 
-      box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
-    }
-    .card-header { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: flex-start; 
-    }
-    .card-header h4 { 
-      margin: 0; 
-      font-size: 14px; 
-      color: #1a202c; 
-      font-weight: bold; 
-    }
-    .badge-status { 
-      font-size: 10px; 
-      font-weight: bold; 
-      padding: 2px 6px; 
-      border-radius: 20px; 
-    }
-    .badge-status.public { 
-      background: #fef2f2; 
-      color: #C8001E; 
-    }
-    .badge-status.premium { 
-      background: #fffbeb; 
-      color: #b45309; 
-    }
-    .card-white .ref { 
-      font-size: 10px; 
-      color: #718096; 
-      font-style: italic; 
-      margin: 4px 0; 
-    }
-    .card-white .desc { 
-      font-size: 12px; 
-      color: #4a5568; 
-      margin: 0 0 12px 0; 
-      line-height: 1.4; 
-    }
-    .btn-view { 
-      background: #1a202c; 
-      color: white; 
-      border: none; 
-      width: 100%; 
-      padding: 10px; 
-      border-radius: 8px; 
-      cursor: pointer; 
-      font-size: 12px; 
-      font-weight: bold; 
-    }
-    .admin-box { 
-      margin-top: 30px; 
-      background: white; 
-      padding: 15px; 
-      border-radius: 12px; 
-      border: 2px dashed #cbd5e1; 
-    }
-    .admin-box h3 { 
-      margin: 0 0 6px 0; 
-      font-size: 14px; 
-      color: #0f766e; 
-    }
-    .admin-intro { 
-      font-size: 12px; 
-      color: #64748b; 
-      margin: 0 0 12px 0; 
-    }
-    .admin-row { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      background: #f8fafc; 
-      padding: 10px; 
-      border-radius: 8px; 
-      border: 1px solid #e2e8f0; 
-    }
-    .member-name { 
-      margin: 0; 
-      font-size: 13px; 
-      font-weight: bold; 
-      color: #334155; 
-    }
-    .member-dept { 
-      margin: 0; 
-      font-size: 11px; 
-      color: #64748b; 
-    }
-    .btn-approve { 
-      background: #16a34a; 
-      color: white; 
-      border: none; 
-      padding: 6px 12px; 
-      border-radius: 6px; 
-      cursor: pointer; 
-      font-size: 12px; 
-      font-weight: bold; 
-    }
+    body { background: #cbd5e1; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .protected { -webkit-user-select: none; user-select: none; }
   </style>
 </head>
 <body>
 
-<div id="app-container">
+<div id="app-container" class="mx-auto max-w-[420px] bg-[#f4f5f7] min-h-screen shadow-2xl overflow-hidden relative pb-20">
   
-  <header class="fo-header">
-    <div class="header-main">
-      <div class="fo-logo-badge">FO</div>
-      <div class="header-text">
-        <h1>BASE DOCUMENTAIRE FO</h1>
-        <p class="subtitle">Nouvelle-Aquitaine</p>
+  <!-- EN-TÊTE PROFESSIONNEL FO -->
+  <header class="bg-[#C8001E] text-white p-5 text-center shadow-md">
+    <div class="flex items-center justify-center gap-3">
+      <div class="bg-white text-[#C8001E] font-black text-2xl px-3 py-1 rounded-md leading-none border-2 border-[#C8001E]">FO</div>
+      <div class="text-left">
+        <h1 class="text-base font-black tracking-wide leading-tight">BASE DOCUMENTAIRE FO</h1>
+        <p class="text-sm opacity-90 font-medium">Nouvelle-Aquitaine</p>
       </div>
     </div>
-    <div id="role-badge" class="badge">Espace Invité</div>
+    <div id="role-badge" class="hidden mt-3 inline-block bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"></div>
   </header>
 
-  <div class="demo-switcher">
-    <button onclick="changerRole('invite')" id="btn-invite" class="btn-toggle active">Invité</button>
-    <button onclick="changerRole('adherent')" id="btn-adherent" class="btn-toggle">Adhérent</button>
-    <button onclick="changerRole('admin')" id="btn-admin" class="btn-toggle">Admin (Moi)</button>
-  </div>
-
-  <div class="content-body">
-    
-    <div id="block-invite" class="alert-box">
-      <h3>🔒 Accès Restreint aux Militants</h3>
-      <p>Vous n'avez pas encore validé votre adhésion. Les fiches d'analyse juridique FO et les accords d'entreprise régionaux sont réservés aux adhérents.</p>
-      <button onclick="alert('Votre demande d'adhésion a été transmise aux administrateurs FO Nouvelle-Aquitaine.')" class="btn-action-red">
-        Demander la validation de mon adhésion FO
-      </button>
-    </div>
-
-    <div id="block-search" class="search-container" style="display: none;">
-      <input type="text" id="search-input" oninput="filtrerDocuments()" placeholder="🔍 Rechercher un mot-clé, article, thème (ex: heures)...">
-    </div>
-
-    <h2 class="section-title" id="sec-title">Document d'information public</h2>
-    
-    <div class="cards-list">
+  <!-- ÉCRAN D'AUTHENTIFICATION -->
+  <div id="auth-screen" class="p-6 mt-10">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 id="auth-title" class="text-xl font-bold text-gray-800 text-center mb-1">Connexion</h2>
+      <p id="auth-subtitle" class="text-xs text-gray-400 text-center mb-6">Accès réservé aux structures et militants</p>
       
-      <div class="card-white" id="doc-1">
-        <div class="card-header">
-          <h4>Livret d'accueil des CSE de la Région</h4>
-          <span class="badge-status public">🔓 Public</span>
+      <form onsubmit="gererAuthentification(event)" class="space-y-4">
+        <div id="field-name" class="hidden">
+          <input type="text" id="user-name" placeholder="Nom complet" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-[#C8001E] text-sm">
         </div>
-        <p class="ref">Réf: FO Régional - Guide 2026</p>
-        <p class="desc">Cadre d'action des élus, obligations de l'employeur et bases du mandat syndical en région.</p>
-        <button onclick="simulerLecture('Livret d'accueil des CSE')" class="btn-view">👁️ Consulter le texte de référence</button>
-      </div>
+        <input type="email" id="user-email" placeholder="Adresse Email" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-[#C8001E] text-sm">
+        <input type="password" id="user-password" placeholder="Mot de passe (6+ car.)" minlength="6" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-[#C8001E] text-sm">
+        <p id="error-message" class="text-xs text-[#C8001E] font-medium hidden"></p>
+        <button type="submit" id="btn-submit" class="w-full bg-[#C8001E] text-white font-bold py-3 rounded-xl shadow-md hover:bg-red-700 transition text-sm">Se connecter</button>
+      </form>
+      <button onclick="basculerModeAuth()" id="btn-switch" class="w-full text-center text-xs text-gray-500 underline mt-4 block">Pas de compte ? Inscription</button>
+    </div>
+  </div>
 
-      <div class="card-white target-premium" id="doc-2" style="display: none;">
-        <div class="card-header">
-          <h4>Crédit d'heures de délégation</h4>
-          <span class="badge-status premium">🛡️ FO Premium</span>
-        </div>
-        <p class="ref">Réf: Art. L2315-7 Code du travail</p>
-        <p class="desc">Règles d'utilisation, bons de délégation régionaux et fiches de riposte face aux contestations de l'employeur.</p>
-        <button onclick="simulerLecture('Crédit d'heures de délégation')" class="btn-view">👁️ Consulter la fiche juridique</button>
-      </div>
-
-      <div class="card-white target-premium" id="doc-3" style="display: none;">
-        <div class="card-header">
-          <h4>Orientations stratégiques du CSE</h4>
-          <span class="badge-status premium">🛡️ FO Premium</span>
-        </div>
-        <p class="ref">Réf: Art. L2312-8 Code du travail</p>
-        <p class="desc">Dossier méthodologique pour aider les élus à formuler un avis motivé solide face aux projets de la direction.</p>
-        <button onclick="simulerLecture('Orientations stratégiques du CSE')" class="btn-view">👁️ Consulter le dossier d'analyse</button>
-      </div>
-
+  <!-- ÉCRAN PRINCIPAL DE L'APPLICATION -->
+  <div id="main-screen" class="hidden p-4 protected">
+    
+    <!-- COMMUNIQUE DE RESTRICTION POUR LES INVITÉS -->
+    <div id="block-invite" class="bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-xl mb-4 text-xs leading-relaxed hidden">
+      <p class="font-bold mb-1 text-sm text-amber-950">🔒 Accès Restreint aux Militants</p>
+      <p class="mb-3 opacity-90">Votre demande d'adhésion est reçue. Les fiches d'analyse juridique FO et les accords d'entreprise régionaux sont réservés aux adhérents validés.</p>
+      <button id="btn-request-adherent" onclick="demanderAdhesionRégionale()" class="w-full bg-[#C8001E] text-white font-bold py-2.5 rounded-lg text-xs shadow">Demander la validation de mon adhésion FO</button>
     </div>
 
-    <div id="block-admin" class="admin-box" style="display: none;">
-      <h3>⚙️ Espace Validation Régionale FO</h3>
-      <p class="admin-intro">Demandes d'accès reçues depuis les départements de la région :</p>
-      <div class="admin-row">
-        <div>
-          <p class="member-name">Camille Martin</p>
-          <p class="member-dept">Union Départementale - Gironde</p>
-        </div>
-        <button onclick="alert('Camille Martin a été validée. Son accès FO Premium est actif.')" class="btn-approve">Valider l'Adhérent</button>
-      </div>
+    <!-- RECHERCHE AVANCÉE PAR MOTS-CLÉS -->
+    <div id="block-search" class="mb-5 hidden">
+      <input type="text" id="search-input" oninput="filtrerDocs()" placeholder="🔍 Rechercher un mot-clé, article, thème..." class="w-full p-3.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#C8001E]/20 bg-white text-sm shadow-sm">
+    </div>
+
+    <h3 class="text-[11px] text-gray-400 font-bold uppercase tracking-wider mb-3">Fiches juridiques & Accords régionaux</h3>
+    <div id="documents-container" class="space-y-3"></div>
+
+    <!-- PANNEAU DE MODÉRATION INTERNE (ADMIN) -->
+    <div id="block-admin" class="mt-8 bg-white border-2 border-dashed border-gray-200 p-4 rounded-xl hidden shadow-sm">
+      <h3 class="text-sm font-bold text-teal-800 mb-1">⚙️ Espace Validation Régionale FO</h3>
+      <p class="text-[11px] text-gray-500 mb-4">Militants en attente de droits d'accès pour la Nouvelle-Aquitaine :</p>
+      <div id="admin-requests-list" class="space-y-2"></div>
     </div>
 
   </div>
+
+  <!-- BARRE DE NAVIGATION BASSE -->
+  <nav id="app-nav" class="fixed bottom-0 left-0 right-0 mx-auto max-w-[420px] bg-white border-t border-gray-100 flex shadow-lg z-50 hidden">
+    <button onclick="changerOnglet('docs')" id="nav-docs-btn" class="flex-1 py-3 text-xs font-bold text-[#C8001E]">📂 Documents</button>
+    <button onclick="changerOnglet('admin')" id="nav-admin-btn" class="flex-1 py-3 text-xs font-bold text-gray-400 hidden">⚙️ Admin</button>
+    <button onclick="deconnexion()" class="flex-1 py-3 text-xs font-bold text-gray-400">🚪 Quitter</button>
+  </nav>
+
 </div>
 
 <script>
-  function changerRole(role) {
-    document.getElementById('btn-invite').classList.remove('active');
-    document.getElementById('btn-adherent').classList.remove('active');
-    document.getElementById('btn-admin').classList.remove('active');
-    
-    document.getElementById('btn-' + role).classList.add('active');
-    document.getElementById('role-badge').innerText = "Espace " + role;
+  const URL_SB = "https://xlotbgxzgytqqtxkoivb.supabase.co";
+  const KEY_SB = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhsb3RiZ3h6Z3l0cXF0eGtvaXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMjc1NDEsImV4cCI6MjEwNjgwMzU0MX0.1O488-rY6b8VonDbw1IgrXw_X9rSAgOLcVy8lJisX3M";
+  const supabaseClient = supabase.createClient(URL_SB, KEY_SB);
 
-    const blockInvite = document.getElementById('block-invite');
-    const blockSearch = document.getElementById('block-search');
-    const blockAdmin = document.getElementById('block-admin');
-    const secTitle = document.getElementById('sec-title');
-    const premiumDocs = document.querySelectorAll('.target-premium');
+  let sessionCourante = null;
+  let profilCourant = null;
+  let modeAuth = 'login';
+  let tousLesDocs = [];
 
-    if (role === 'invite') {
-      blockInvite.style.display = 'block';
-      blockSearch.style.display = 'none';
-      blockAdmin.style.display = 'none';
-      secTitle.innerText = "Document d'information public";
-      premiumDocs.forEach(doc => doc.style.display = 'none');
-    } 
-    else if (role === 'adherent') {
-      blockInvite.style.display = 'none';
-      blockSearch.style.display = 'block';
-      blockAdmin.style.display = 'none';
-      secTitle.innerText = "Fiches juridiques & Accords régionaux";
-      premiumDocs.forEach(doc => doc.style.display = 'block');
-    } 
-    else if (role === 'admin') {
-      blockInvite.style.display = 'none';
-      blockSearch.style.display = 'block';
-      blockAdmin.style.display = 'block';
-      secTitle.innerText = "Fiches juridiques & Accords régionaux";
-      premiumDocs.forEach(doc => doc.style.display = 'block');
+  window.onload = () => {
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+      sessionCourante = session;
+      if (session) {
+        await chargerProfilEtApplication();
+      } else {
+        basculerEcran('auth');
+      }
+    });
+  };
+
+  function basculerModeAuth() {
+    modeAuth = modeAuth === 'login' ? 'signup' : 'login';
+    document.getElementById('auth-title').innerText = modeAuth === 'login' ? 'Connexion' : 'Créer mon compte';
+    document.getElementById('field-name').style.display = modeAuth === 'login' ? 'none' : 'block';
+    document.getElementById('btn-submit').innerText = modeAuth === 'login' ? 'Se connecter' : 'Créer mon compte';
+    document.getElementById('btn-switch').innerText = modeAuth === 'login' ? 'Pas de compte ? Inscription' : 'Déjà inscrit ? Se connecter';
+  }
+
+  async function gererAuthentification(e) {
+    e.preventDefault();
+    document.getElementById('error-message').classList.add('hidden');
+    const email = document.getElementById('user-email').value;
+    const password = document.getElementById('user-password').value;
+
+    if (modeAuth === 'signup') {
+      const name = document.getElementById('user-name').value;
+      const { error } = await supabaseClient.auth.signUp({
+        email, password, options: { data: { full_name: name } }
+      });
+      if (error) alert(error.message);
+      else { alert("Inscription réussie ! Vous pouvez vous connecter."); basculerModeAuth(); }
+    } else {
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) document.getElementById('error-message').classList.remove('hidden');
     }
   }
 
-  function filtrerDocuments() {
+  async function chargerProfilEtApplication() {
+    const { data: profile } = await supabaseClient.from('profiles').select('*').eq('id', sessionCourante.user.id).single();
+    if (profile) {
+      profilCourant = profile;
+      document.getElementById('role-badge').classList.remove('hidden');
+      document.getElementById('role-badge').innerText = "Espace " + profile.role;
+      
+      if (profile.role === 'invite') {
+        document.getElementById('block-invite').classList.remove('hidden');
+        if (profile.requested_adherent) {
+          const btn = document.getElementById('btn-request-adherent');
+          btn.disabled = true;
+          btn.innerText = "⏳ Demande envoyée... En attente";
+          btn.className = "w-full bg-gray-400 text-white font-bold py-2.5 rounded-lg text-xs cursor-not-allowed";
+        }
+      } else {
+        document.getElementById('block-search').classList.remove('hidden');
+        if (profile.role === 'admin') document.getElementById('nav-admin-btn').classList.remove('hidden');
+      }
+      await chargerDocs();
+      basculerEcran('app');
+    }
+  }
+
+  async function demanderAdhesionRégionale() {
+    await supabaseClient.from('profiles').update({ requested_adherent: true, requested_at: new Date() }).eq('id', profilCourant.id);
+    alert("Demande transmise.");
+    location.reload();
+  }
+
+  async function chargerDocs() {
+    tousLesDocs = [
+      { title: "Livret d'accueil des CSE de la Région", reference: "FO Régional - Guide 2026", description: "Cadre d'action des élus, obligations de l'employeur.", is_public: true },
+      { title: "Crédit d'heures de délégation", reference: "Art. L2315-7 Code du travail", description: "Règles d'utilisation et fiches de riposte face aux contestations.", is_public: false },
+      { title: "Orientations stratégiques du CSE", reference: "Art. L2312-8 Code du travail", description: "Dossier méthodologique pour formuler un avis motivé.", is_public: false }
+    ];
+    filtrerDocs();
+  }
+
+  function filtrerDocs() {
     const query = document.getElementById('search-input').value.toLowerCase();
-    const doc1 = document.getElementById('doc-1');
-    const doc2 = document.getElementById('doc-2');
-    const doc3 = document.getElementById('doc-3');
+    const conteneur = document.getElementById('documents-container');
+    conteneur.innerHTML = '';
 
-    if (doc1) doc1.style.display = "livret accueil cse guide regional".includes(query) ? "block" : "none";
-    if (doc2 && !document.getElementById('btn-invite').classList.contains('active')) {
-      doc2.style.display = "credit heures delegation travail".includes(query) ? "block" : "none";
-    }
-    if (doc3 && !document.getElementById('btn-invite').classList.contains('active')) {
-      doc3.style.display = "orientations strategies consultation avis".includes(query) ? "block" : "none";
-    }
+    tousLesDocs.forEach(doc => {
+      if (profilCourant.role === 'invite' && !doc.is_public) return;
+      if (doc.title.toLowerCase().includes(query)) {
+        const div = document.createElement('div');
+        div.className = "bg-white p-4 rounded-xl border-l-4 border-[#C8001E] shadow-sm";
+        div.innerHTML = `<h4 class="font-bold text-gray-800 text-sm">\${doc.title}</h4><p class="text-[10px] text-gray-400 italic mb-2">Réf: \${doc.reference}</p><p class="text-xs text-gray-600 mb-3">\${doc.description}</p><button onclick="alert('Sécurité Canvas Active')" class="w-full bg-[#1a202c] text-white font-bold py-2 rounded-lg text-xs">👁️ Consulter</button>`;
+        conteneur.appendChild(div);
+      }
+    });
   }
 
-  function simulerLecture(titre) {
-    alert("🛡️ SÉCURITÉ FO ACTIVÉE\n\nLe document '" + titre + "' est affiché via un rendu d'image sécurisé (Canvas).\n\nLes fonctions de téléchargement, d'impression et le clic droit sont totalement neutralisés.");
+  function basculerEcran(type) {
+    document.getElementById('auth-screen').style.display = type === 'auth' ? 'block' : 'none';
+    document.getElementById('main-screen').style.display = type === 'app' ? 'block' : 'none';
+    document.getElementById('app-nav').style.display = type === 'app' ? 'flex' : 'none';
   }
+
+  async function deconnexion() { await supabaseClient.auth.signOut(); location.reload(); }
 </script>
-
 </body>
 </html>
