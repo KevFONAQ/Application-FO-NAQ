@@ -179,8 +179,8 @@
       if (doc.title.toLowerCase().includes(query)) {
         const div = document.createElement('div');
         div.className = "bg-white p-4 rounded-xl border-l-4 border-[#C8001E] shadow-sm";
-div.innerHTML = <h4 class="font-bold text-gray-800 text-sm">\${doc.title}</h4><p class="text-[10px] text-gray-400 italic mb-2">Réf: \${doc.reference}</p><p class="text-xs text-gray-600 mb-3">\${doc.description}</p><button onclick="alert('Sécurité Canvas Active')" class="w-full bg-[#1a202c] text-white font-bold py-2 rounded-lg text-xs">👁️ Consulter</button>;
-conteneur.appendChild(div);
+        div.innerHTML = <h4 class="font-bold text-gray-800 text-sm">\${doc.title}</h4><p class="text-[10px] text-gray-400 italic mb-2">Réf: \${doc.reference}</p><p class="text-xs text-gray-600 mb-3">\${doc.description}</p><button onclick="alert('Sécurité Canvas Active')" class="w-full bg-[#1a202c] text-white font-bold py-2 rounded-lg text-xs">👁️ Consulter</button>;
+        conteneur.appendChild(div);
 }
 });
 }
