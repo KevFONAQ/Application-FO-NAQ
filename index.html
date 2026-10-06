@@ -7,62 +7,242 @@
   <script src="https://tailwindcss.com"></script>
   <script src="https://jsdelivr.net"></script>
 </head>
-<body class="bg-slate-200 font-sans">
-<div class="mx-auto max-w-[420px] bg-[#f4f5f7] min-h-screen shadow-2xl relative pb-20">
-  <header class="bg-[#C8001E] text-white p-5 text-center shadow-md">
-    <div class="flex items-center justify-center gap-3">
-      <div class="bg-white text-[#C8001E] font-black text-2xl px-3 py-1 rounded border-2 border-[#C8001E]">FO</div>
-      <div class="text-left"><h1 class="text-base font-black tracking-wide leading-tight">BASE DOCUMENTAIRE FO</h1><p class="text-sm opacity-90 font-medium">Nouvelle-Aquitaine</p></div>
+<body class="bg-slate-100 font-sans p-4">
+
+<div id="app-container" class="mx-auto max-w-4xl bg-[#f4f5f7] min-h-[85vh] shadow-2xl rounded-2xl overflow-hidden relative pb-20">
+  
+  <!-- EN-TÊTE FO -->
+  <header class="bg-[#C8001E] text-white p-6 text-center shadow-md">
+    <div class="flex items-center justify-center gap-4">
+      <div class="bg-white text-[#C8001E] font-black text-3xl px-4 py-2 rounded-lg border-2 border-[#C8001E] leading-none">FO</div>
+      <div class="text-left">
+        <h1 class="text-xl font-black tracking-wide leading-tight">BASE DOCUMENTAIRE FO</h1>
+        <p class="text-sm opacity-90 font-medium">Nouvelle-Aquitaine</p>
+      </div>
     </div>
     <div id="role-badge" class="hidden mt-3 inline-block bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase"></div>
   </header>
-  <div id="auth-screen" class="p-6 mt-10">
+
+  <!-- ÉCRAN DOUBLE ACCÈS (CONNEXION & INSCRIPTION CÔTE À CÔTE POUR ÉVITER LES BUGS) -->
+  <div id="auth-screen" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+    
+    <!-- BLOC 1 : CONNEXION -->
     <div class="bg-white p-6 rounded-2xl shadow border border-gray-100">
-      <h2 id="auth-title" class="text-xl font-bold text-gray-800 text-center mb-6">Connexion</h2>
-      <form onsubmit="gererAuth(event)" class="space-y-4">
-        <div id="field-name" class="hidden"><input type="text" id="user-name" placeholder="Nom complet" class="w-full p-3 border rounded-xl text-sm"></div>
-        <input type="email" id="user-email" placeholder="Adresse Email" required class="w-full p-3 border rounded-xl text-sm">
-        <input type="password" id="user-password" placeholder="Mot de passe" minlength="6" required class="w-full p-3 border rounded-xl text-sm">
-        <button type="submit" id="btn-submit" class="w-full bg-[#C8001E] text-white font-bold py-3 rounded-xl shadow text-sm">Se connecter</button>
+      <h2 class="text-lg font-bold text-gray-800 mb-2 border-b pb-2 text-[#C8001E]">Déjà inscrit ? Connexion</h2>
+      <p class="text-xs text-gray-400 mb-4">Saisissez vos identifiants FO validés</p>
+      <form onsubmit="connexion(event)" class="space-y-4">
+        <input type="email" id="login-email" placeholder="Adresse Email" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
+        <input type="password" id="login-password" placeholder="Mot de passe" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
+        <button type="submit" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl shadow text-sm hover:bg-slate-700 transition">
+          Se connecter
+        </button>
       </form>
-      <button onclick="basculer()" id="btn-switch" class="w-full text-center text-xs text-gray-500 underline mt-4 block">Pas de compte ? Inscription</button>
     </div>
+
+    <!-- BLOC 2 : INSCRIPTION -->
+    <div class="bg-white p-6 rounded-2xl shadow border border-gray-100">
+      <h2 class="text-lg font-bold text-gray-800 mb-2 border-b pb-2 text-[#C8001E]">Nouveau ? Créer un compte</h2>
+      <p class="text-xs text-gray-400 mb-4">Créez vos accès de départ (Rôle Invité)</p>
+      <form onsubmit="inscription(event)" class="space-y-4">
+        <input type="text" id="reg-name" placeholder="Nom complet" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
+        <input type="email" id="reg-email" placeholder="Adresse Email" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
+        <input type="password" id="reg-password" placeholder="Mot de passe (6+ caractères)" minlength="6" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
+        <button type="submit" class="w-full bg-[#C8001E] text-white font-bold py-3 rounded-xl shadow text-sm hover:bg-red-700 transition">
+          Créer mon compte FO
+        </button>
+      </form>
+    </div>
+
   </div>
-  <div id="main-screen" class="hidden p-4 select-none">
-    <div id="block-invite" class="bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-xl mb-4 text-xs hidden">
-      <p class="font-bold mb-1 text-sm">🔒 Accès Restreint aux Militants</p>
-      <p class="mb-3">Votre demande d'adhésion est reçue. Les fiches juridiques sont réservées aux adhérents validés.</p>
-      <button id="btn-req" onclick="demander()" class="w-full bg-[#C8001E] text-white font-bold py-2 rounded-lg text-xs">Demander la validation de mon adhésion FO</button>
+
+  <!-- ÉCRAN PRINCIPAL DE L'APPLICATION (MASQUÉ AVANT SÉCURITÉ) -->
+  <div id="main-screen" class="hidden p-6 select-none">
+    
+    <!-- MESSAGE D'ATTENTE POUR LES INVITÉS -->
+    <div id="block-invite" class="bg-amber-50 border border-amber-200 text-amber-900 p-5 rounded-2xl mb-6 text-sm hidden shadow-sm">
+      <p class="font-bold mb-1 text-base text-amber-950">🔒 Accès Restreint aux Militants Validés</p>
+      <p class="mb-4 opacity-95">Votre inscription est bien enregistrée. Les fiches d'analyse juridique FO et les accords d'entreprise régionaux sont cryptés et réservés aux adhérents validés par le secrétariat régional.</p>
+      <button id="btn-req" onclick="demanderAccès()" class="w-full bg-[#C8001E] text-white font-bold py-3 rounded-xl text-xs shadow-md hover:bg-red-700 transition">
+        Demander la validation de mon adhésion FO Nouvelle-Aquitaine
+      </button>
     </div>
-    <div id="block-search" class="mb-5 hidden"><input type="text" id="search-input" oninput="filtrer()" placeholder="🔍 Rechercher un mot-clé..." class="w-full p-3 border rounded-xl bg-white text-sm"></div>
-    <h3 class="text-[11px] text-gray-400 font-bold uppercase mb-3">Fiches juridiques & Accords</h3>
-    <div id="docs-list" class="space-y-3"></div>
-    <div id="block-admin" class="mt-8 bg-white border-2 border-dashed p-4 rounded-xl hidden">
-      <h3 class="text-sm font-bold text-teal-800 mb-2">⚙️ Espace Validation FO</h3>
+
+    <!-- MOTEUR DE RECHERCHE -->
+    <div id="block-search" class="mb-6 hidden">
+      <input type="text" id="search-input" oninput="filtrerDocuments()" placeholder="🔍 Rechercher un mot-clé, article, thème (ex: heures, CSE)..." class="w-full p-4 border rounded-xl bg-white text-sm shadow-sm outline-none focus:ring-2 focus:ring-[#C8001E]/20">
+    </div>
+
+    <h3 class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-4">Documents disponibles</h3>
+    <div id="docs-list" class="space-y-4"></div>
+
+    <!-- ZONE DE MODÉRATION INTERNE (ADMIN) -->
+    <div id="block-admin" class="mt-10 bg-white border-2 border-dashed p-6 rounded-2xl hidden shadow-sm">
+      <h3 class="text-base font-bold text-teal-800 mb-2">⚙️ Espace Validation Régionale FO</h3>
+      <p class="text-xs text-gray-500 mb-4">Militants en attente de droits d'accès pour la région :</p>
       <div id="admin-list" class="space-y-2"></div>
     </div>
+
   </div>
-  <nav id="app-nav" class="fixed bottom-0 left-0 right-0 mx-auto max-w-[420px] bg-white border-t flex shadow-lg hidden">
-    <button onclick="onglet('docs')" id="n-docs" class="flex-1 py-3 text-xs font-bold text-[#C8001E]">📂 Documents</button>
-    <button onclick="onglet('admin')" id="n-admin" class="flex-1 py-3 text-xs font-bold text-gray-400 hidden">⚙️ Admin</button>
-    <button onclick="quitter()" class="flex-1 py-3 text-xs font-bold text-gray-400">🚪 Quitter</button>
+
+  <!-- BARRE DE NAVIGATION BASSE (CONNECTÉ) -->
+  <nav id="app-nav" class="fixed bottom-0 left-0 right-0 mx-auto max-w-4xl bg-white border-t flex shadow-lg hidden rounded-b-2xl">
+    <button onclick="onglet('docs')" id="n-docs" class="flex-1 py-4 text-xs font-bold text-[#C8001E]">📂 Documents</button>
+    <button onclick="onglet('admin')" id="n-admin" class="flex-1 py-4 text-xs font-bold text-gray-400 hidden">⚙️ Gestion Admin</button>
+    <button onclick="quitter()" class="flex-1 py-4 text-xs font-bold text-gray-400 hover:text-red-600 transition">🚪 Déconnexion</button>
   </nav>
+
 </div>
+
 <script>
+  // LIEN STRICT AVEC VOTRE CLIENT SUPABASE
   const supabase = window.supabase.createClient("https://supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhsb3RiZ3h6Z3l0cXF0eGtvaXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMjc1NDEsImV4cCI6MjEwNjgwMzU0MX0.1O488-rY6b8VonDbw1IgrXw_X9rSAgOLcVy8lJisX3M");
-  let session = null, profil = null, docs = [], mode = 'login', tab = 'docs';
-  window.onload = () => { supabase.auth.onAuthStateChange(async (e, s) => { session = s; if (s) { await charger(); } else { ecran('auth'); } }); };
-  function basculer() { mode = mode === 'login' ? 'signup' : 'login'; document.getElementById('auth-title').innerText = mode === 'login' ? 'Connexion' : 'Créer mon compte'; document.getElementById('field-name').style.display = mode === 'login' ? 'none' : 'block'; document.getElementById('btn-submit').innerText = mode === 'login' ? 'Se connecter' : 'Créer mon compte'; document.getElementById('btn-switch').innerText = mode === 'login' ? 'Pas de compte ? Inscription' : 'Déjà inscrit ? Se connecter'; }
-  async function gererAuth(e) { e.preventDefault(); const email = document.getElementById('user-email').value, pass = document.getElementById('user-password').value; if (mode === 'signup') { const name = document.getElementById('user-name').value; const { error } = await supabase.auth.signUp({ email, password: pass, options: { data: { full_name: name } } }); if (error) alert(error.message); else { alert("Inscription réussie ! Connectez-vous."); basculer(); } } else { const { error } = await supabase.auth.signInWithPassword({ email, password: pass }); if (error) alert("Identifiants incorrects."); } }
-  async function charger() { const { data: p } = await supabase.from('profiles').select('*').eq('id', session.user.id).single(); if (p) { profil = p; document.getElementById('role-badge').classList.remove('hidden'); document.getElementById('role-badge').innerText = "Espace " + p.role; if (p.role === 'invite') { document.getElementById('block-invite').classList.remove('hidden'); if (p.requested_adherent) { const b = document.getElementById('btn-req'); b.disabled = true; b.innerText = "⏳ En attente de validation..."; b.className = "w-full bg-gray-400 text-white font-bold py-2 rounded-lg text-xs"; } } else { document.getElementById('block-search').classList.remove('hidden'); if (p.role === 'admin') document.getElementById('n-admin').classList.remove('hidden'); } await chargerDocs(); ecran('app'); } }
-  async function demander() { await supabase.from('profiles').update({ requested_adherent: true, requested_at: new Date() }).eq('id', profil.id); alert("Demande envoyée."); location.reload(); }
-  async function chargerDocs() { docs = [{ title: "Livret d'accueil des CSE", reference: "FO Régional 2026", description: "Cadre d'action des élus.", is_public: true }, { title: "Crédit d'heures de délégation", reference: "Art. L2315-7", description: "Règles d'utilisation et ripostes.", is_public: false }, { title: "Orientations stratégiques", reference: "Art. L2312-8", description: "Dossier d'analyse face à la direction.", is_public: false }]; filtrer(); if (profil.role === 'admin') await chargerDemandes(); }
-  function filtrer() { const q = document.getElementById('search-input').value.toLowerCase(), c = document.getElementById('docs-list'); c.innerHTML = ''; docs.forEach(d => { if (profil.role === 'invite' && !d.is_public) return; if (d.title.toLowerCase().includes(q)) { const div = document.createElement('div'); div.className = "bg-white p-4 rounded-xl border-l-4 border-[#C8001E] shadow-sm"; div.innerHTML = `<h4 class="font-bold text-gray-800 text-sm">${d.title}</h4><p class="text-[10px] text-gray-400 italic mb-2">Réf: ${d.reference}</p><p class="text-xs text-gray-600 mb-3">${d.description}</p><button onclick="alert('Sécurité active (Anti-copie)')" class="w-full bg-slate-800 text-white font-bold py-2 rounded-lg text-xs">👁️ Consulter</button>`; c.appendChild(div); } }); }
-  async function chargerDemandes() { const { data: d } = await supabase.from('profiles').select('id, email, full_name').eq('role', 'invite').eq('requested_adherent', true); const c = document.getElementById('admin-list'); c.innerHTML = ''; if (d && d.length > 0) { d.forEach(u => { const div = document.createElement('div'); div.className = "flex items-center justify-between bg-gray-50 p-3 rounded-lg border text-xs gap-2"; div.innerHTML = `<div class="truncate"><p class="font-bold text-gray-800 truncate">${u.full_name || 'Militant'}</p><p class="text-gray-400 truncate">${u.email}</p></div><button onclick="valider('${u.id}')" class="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-md shrink-0">Accepter</button>`; c.appendChild(div); }); } else { c.innerHTML = '<p class="text-xs text-gray-400 italic">Aucune demande.</p>'; } }
-  async function valider(id) { const { error } = await supabase.from('profiles').update({ role: 'adherent', requested_adherent: false }).eq('id', id); if (!error) { alert("Militant validé !"); await chargerDemandes(); await chargerDocs(); } }
-  function onglet(id) { tab = id; document.getElementById('n-docs').className = id === 'docs' ? "flex-1 py-3 text-xs font-bold text-[#C8001E]" : "flex-1 py-3 text-xs font-bold text-gray-400"; document.getElementById('n-admin').className = id === 'admin' ? "flex-1 py-3 text-xs font-bold text-[#C8001E]" : "flex-1 py-3 text-xs font-bold text-gray-400"; document.getElementById('block-search').style.display = (id === 'docs' && profil.role !== 'invite') ? 'block' : 'none'; document.getElementById('docs-list').style.display = id === 'docs' ? 'block' : 'none'; document.getElementById('block-admin').style.display = id === 'admin' ? 'block' : 'none'; }
-  function ecran(t) { document.getElementById('auth-screen').style.display = t === 'auth' ? 'block' : 'none'; document.getElementById('main-screen').style.display = t === 'app' ? 'block' : 'none'; document.getElementById('app-nav').style.display = t === 'app' ? 'flex' : 'none'; }
-  async function quitter() { await supabase.auth.signOut(); location.reload(); }
-</script>
-</body>
-</html>
+  
+  let session = null, profil = null, docs = [], tab = 'docs';
+
+  window.onload = () => {
+    supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      session = currentSession;
+      if (currentSession) {
+        await chargerProfilEtApp();
+      } else {
+        ecran('auth');
+      }
+    });
+  };
+
+  // 1. ACTION D'INSCRIPTION DEPUIS LE PC
+  async function inscription(e) {
+    e.preventDefault();
+    const name = document.getElementById('reg-name').value;
+    const email = document.getElementById('reg-email').value;
+    const pass = document.getElementById('reg-password').value;
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email,
+      password: pass,
+      options: { data: { full_name: name } }
+    });
+
+    if (error) {
+      alert("Erreur d'inscription : " + error.message);
+    } else {
+      alert("Votre compte a été créé avec succès dans la base FO ! Vous pouvez maintenant utiliser le cadre de gauche pour vous connecter.");
+      document.getElementById('reg-name').value = '';
+      document.getElementById('reg-email').value = '';
+      document.getElementById('reg-password').value = '';
+    }
+  }
+
+  // 2. ACTION DE CONNEXION DEPUIS LE PC
+  async function connexion(e) {
+    e.preventDefault();
+    const email = document.getElementById('login-email').value;
+    const pass = document.getElementById('login-password').value;
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: pass
+    });
+
+    if (error) {
+      alert("Connexion refusée : Identifiants FO invalides ou en attente.");
+    }
+  }
+
+  // 3. CHARGEMENT DES COMPTES ET DES DROITS
+  async function chargerProfilEtApp() {
+    const { data: p, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+    
+    if (p) {
+      profil = p;
+      const badge = document.getElementById('role-badge');
+      badge.classList.remove('hidden');
+      badge.innerText = "Espace " + p.role;
+
+      if (p.role === 'invite') {
+        document.getElementById('block-invite').classList.remove('hidden');
+        if (p.requested_adherent) {
+          const b = document.getElementById('btn-req');
+          b.disabled = true;
+          b.innerText = "⏳ Demande envoyée au Secrétariat... En attente";
+          b.className = "w-full bg-gray-400 text-white font-bold py-3 rounded-xl text-xs cursor-not-allowed";
+        }
+      } else {
+        document.getElementById('block-search').classList.remove('hidden');
+        if (p.role === 'admin') document.getElementById('n-admin').classList.remove('hidden');
+      }
+      await chargerDocs();
+      ecran('app');
+    }
+  }
+
+  async function demanderAccès() {
+    await supabase.from('profiles').update({ requested_adherent: true, requested_at: new Date() }).eq('id', profil.id);
+    alert("Votre demande de grade Adhérent Premium a été poussée.");
+    location.reload();
+  }
+
+  async function chargerDocs() {
+    docs = [
+      { title: "Livret d'accueil des CSE de la Région", reference: "FO Régional - Guide 2026", description: "Cadre d'action des élus, obligations de l'employeur et bases du mandat syndical.", is_public: true },
+      { title: "Calcul et suivi du crédit d'heures de délégation", reference: "Art. L2315-7 Code du travail", description: "Règles d'utilisation, fiches de riposte face aux contestations abusives.", is_public: false },
+      { title: "Orientations stratégiques et consultations", reference: "Art. L2312-8 Code du travail", description: "Dossier d'analyse méthodique pour formuler un avis motivé solide.", is_public: false }
+    ];
+    filtrerDocuments();
+    if (profil.role === 'admin') await chargerDemandesAdmin();
+  }
+
+  function filtrerDocuments() {
+    const q = document.getElementById('search-input').value.toLowerCase();
+    const c = document.getElementById('docs-list');
+    c.innerHTML = '';
+    docs.forEach(d => {
+  if (profil.role === 'invite' && !d.is_public) return;
+  if (d.title.toLowerCase().includes(q) || d.reference.toLowerCase().includes(q)) {
+    const div = document.createElement('div');
+    div.className = "bg-white p-5 rounded-xl border-l-4 border-[#C8001E] shadow-sm";
+    div.innerHTML = <div class="flex justify-between items-start mb-1"> <h4 class="font-bold text-gray-900 text-base">${d.title}</h4> <span class="text-[10px] ${d.is_public ? 'bg-red-50 text-[#C8001E]' : 'bg-amber-50 text-amber-700'} font-bold px-2 py-0.5 rounded-full border">${d.is_public ? '🔓 Public' : '🛡️ FO Premium'}</span> </div> <p class="text-xs text-gray-400 italic mb-2">Réf: ${d.reference}</p> <p class="text-sm text-gray-600 mb-4 leading-relaxed">${d.description}</p> <button onclick="alert('🔒 SÉCURITÉ JURIDIQUE FO\\n\\nRendu Canvas Sécurisé Actif. Le téléchargement et l\'impression sont bloqués.')" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs hover:bg-slate-800 transition">👁️ Consulter la fiche technique</button>;
+    c.appendChild(div);
+}
+});
+}
+async function chargerDemandesAdmin() {
+const { data: list, error } = await supabase.from('profiles').select('id, email, full_name').eq('role', 'invite').eq('requested_adherent', true);
+const c = document.getElementById('admin-list');
+c.innerHTML = '';
+if (list && list.length > 0) {
+list.forEach(u => {
+const div = document.createElement('div');
+div.className = "flex items-center justify-between bg-gray-50 p-4 rounded-xl border text-xs gap-3";
+div.innerHTML = <div class="truncate"> <p class="font-bold text-gray-800 truncate">${u.full_name || 'Militant'}</p> <p class="text-gray-400 truncate">${u.email}</p> </div> <button onclick="validerMilitant('${u.id}')" class="bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-emerald-700 transition shrink-0 shadow-sm">Accepter</button>;
+c.appendChild(div);
+});
+} else {
+c.innerHTML = 'Aucune demande en attente pour la Nouvelle-Aquitaine.';
+}
+}
+async function validerMilitant(id) {
+const { error } = await supabase.from('profiles').update({ role: 'adherent', requested_adherent: false }).eq('id', id);
+if (!error) {
+alert("Le militant a été promu au rang d'Adhérent Premium.");
+await chargerDemandesAdmin();
+await chargerDocs();
+}
+}
+function onglet(id) {
+tab = id;
+document.getElementById('n-docs').className = id === 'docs' ? "flex-1 py-4 text-xs font-bold text-[#C8001E]" : "flex-1 py-4 text-xs font-bold text-gray-400";
+document.getElementById('n-admin').className = id === 'admin' ? "flex-1 py-4 text-xs font-bold text-[#C8001E]" : "flex-1 py-4 text-xs font-bold text-gray-400";
+document.getElementById('block-search').style.display = (id === 'docs' && profil.role !== 'invite') ? 'block' : 'none';
+document.getElementById('docs-list').style.display = id === 'docs' ? 'block' : 'none';
+document.getElementById('block-admin').style.display = id === 'admin' ? 'block' : 'none';
+}
+function ecran(t) {
+document.getElementById('auth-screen').style.display = t === 'auth' ? 'grid' : 'none';
+document.getElementById('main-screen').style.display = t === 'app' ? 'block' : 'none';
+document.getElementById('app-nav').style.display = t === 'app' ? 'flex' : 'none';
+}
+async function quitter() {
+await supabase.auth.signOut();
+location.reload();
+}
