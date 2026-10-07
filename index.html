@@ -78,7 +78,6 @@
 </div>
 
 <script>
-  // CLÉS CONFIGURÉES EN MODE FORCE PRODUCTION (ANTI-ERREUR VERCEL UNAUTHORIZED)
   const URL_FO = "https://supabase.co";
   const KEY_FO = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhsb3RiZ3h6Z3l0cXF0eGtvaXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMjc1NDEsImV4cCI6MjEwNjgwMzU0MX0.1O488-rY6b8VonDbw1IgrXw_X9rSAgOLcVy8lJisX3M";
   const supabase = window.supabase.createClient(URL_FO, KEY_FO);
@@ -155,37 +154,45 @@
       if (profil.role === 'invite' && !d.is_public) return;
       if (d.title.toLowerCase().includes(q)) {
         const div = document.createElement('div'); div.className = "bg-white p-5 rounded-xl border-l-4 border-[#C8001E] shadow-sm";
-div.innerHTML = <div class="flex justify-between items-start mb-1"><h4 class="font-bold text-gray-900 text-base">${d.title}</h4><span class="text-[10px] ${d.is_public ? 'bg-red-50 text-[#C8001E]':'bg-amber-50 text-amber-700'} font-bold px-2 py-0.5 rounded-full border">${d.is_public ? '🔓 Public':'🛡️ Premium'}</span></div><p class="text-xs text-gray-400 italic mb-2">Réf: ${d.reference}</p><p class="text-sm text-gray-600 mb-4">${d.description}</p><button onclick="alert('Sécurité Canvas Active')" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs">👁️ Consulter la fiche technique</button>;
-c.appendChild(div);
-}
-});
-}
-async function chargerMilitantsAttente() {
-const { data: list } = await supabase.from('profiles').select('id, email, full_name').eq('role', 'invite').eq('requested_adherent', true);
-const c = document.getElementById('admin-list'); c.innerHTML = '';
-if (list && list.length > 0) {
-list.forEach(u => {
-const div = document.createElement('div'); div.className = "flex items-center justify-between bg-gray-50 p-4 rounded-xl border text-xs gap-3";
-div.innerHTML = <div class="truncate"><p class="font-bold text-gray-800 truncate">${u.full_name || 'Militant'}</p><p class="text-gray-400 truncate">${u.email}</p></div><button onclick="promouvoir('${u.id}')" class="bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg text-xs shrink-0">Accepter</button>;
-c.appendChild(div);
-});
-} else { c.innerHTML = 'Aucune demande en attente.'; }
-}
-async function promouvoir(id) {
-const { error } = await supabase.from('profiles').update({ role: 'adherent', requested_adherent: false }).eq('id', id);
-if (!error) { alert("Militant validé !"); await chargerMilitantsAttente(); await chargerFichesJuridiques(); }
-}
-function onglet(id) {
-tab = id;
-document.getElementById('n-docs').className = id === 'docs' ? "flex-1 py-4 text-xs font-bold text-[#C8001E]" : "flex-1 py-4 text-xs font-bold text-gray-400";
-document.getElementById('n-admin').className = id === 'admin' ? "flex-1 py-4 text-xs font-bold text-[#C8001E]" : "flex-1 py-4 text-xs font-bold text-gray-400";
-document.getElementById('block-search').style.display = (id === 'docs' && profil.role !== 'invite') ? 'block' : 'none';
-document.getElementById('docs-list').style.display = id === 'docs' ? 'block' : 'none';
-document.getElementById('block-admin').style.display = id === 'admin' ? 'block' : 'none';
-}
-function basculerEcran(t) {
-document.getElementById('auth-screen').style.display = t === 'auth' ? 'grid' : 'none';
-document.getElementById('main-screen').style.display = t === 'app' ? 'block' : 'none';
-document.getElementById('app-nav').style.display = t === 'app' ? 'flex' : 'none';
-}
-async function quitter() { await supabase.auth.signOut(); location.reload(); }
+        div.innerHTML = `<div class="flex justify-between items-start mb-1"><h4 class="font-bold text-gray-900 text-base">${d.title}</h4><span class="text-[10px] ${d.is_public ? 'bg-red-50 text-[#C8001E]':'bg-amber-50 text-amber-700'} font-bold px-2 py-0.5 rounded-full border">${d.is_public ? '🔓 Public':'🛡️ Premium'}</span></div><p class="text-xs text-gray-400 italic mb-2">Réf: ${d.reference}</p><p class="text-sm text-gray-600 mb-4">${d.description}</p><button onclick="alert('Sécurité Canvas Active')" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs">👁️ Consulter la fiche technique</button>`;
+        c.appendChild(div);
+      }
+    });
+  }
+
+  async function chargerMilitantsAttente() {
+    const { data: list } = await supabase.from('profiles').select('id, email, full_name').eq('role', 'invite').eq('requested_adherent', true);
+    const c = document.getElementById('admin-list'); c.innerHTML = '';
+    if (list && list.length > 0) {
+      list.forEach(u => {
+        const div = document.createElement('div'); div.className = "flex items-center justify-between bg-gray-50 p-4 rounded-xl border text-xs gap-3";
+        div.innerHTML = `<div class="truncate"><p class="font-bold text-gray-800 truncate">${u.full_name || 'Militant'}</p><p class="text-gray-400 truncate">${u.email}</p></div><button onclick="promouvoir('${u.id}')" class="bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg text-xs shrink-0">Accepter</button>`;
+        c.appendChild(div);
+      });
+    } else { c.innerHTML = '<p class="text-xs text-gray-400 italic py-2">Aucune demande en attente.</p>'; }
+  }
+
+  async function promouvoir(id) {
+    const { error } = await supabase.from('profiles').update({ role: 'adherent', requested_adherent: false }).eq('id', id);
+    if (!error) { alert("Militant validé !"); await chargerMilitantsAttente(); await chargerFichesJuridiques(); }
+  }
+
+  function onglet(id) {
+    tab = id;
+    document.getElementById('n-docs').className = id === 'docs' ? "flex-1 py-4 text-xs font-bold text-[#C8001E]" : "flex-1 py-4 text-xs font-bold text-gray-400";
+    document.getElementById('n-admin').className = id === 'admin' ? "flex-1 py-4 text-xs font-bold text-[#C8001E]" : "flex-1 py-4 text-xs font-bold text-gray-400";
+    document.getElementById('block-search').style.display = (id === 'docs' && profil.role !== 'invite') ? 'block' : 'none';
+    document.getElementById('docs-list').style.display = id === 'docs' ? 'block' : 'none';
+    document.getElementById('block-admin').style.display = id === 'admin' ? 'block' : 'none';
+  }
+
+  function basculerEcran(t) {
+    document.getElementById('auth-screen').style.display = t === 'auth' ? 'grid' : 'none';
+    document.getElementById('main-screen').style.display = t === 'app' ? 'block' : 'none';
+    document.getElementById('app-nav').style.display = t === 'app' ? 'flex' : 'none';
+  }
+
+  async function quitter() { await supabase.auth.signOut(); location.reload(); }
+</script>
+</body>
+</html>
