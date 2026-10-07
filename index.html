@@ -1,198 +1,212 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Base Documentaire FO Nouvelle-Aquitaine</title>
-  <script src="https://tailwindcss.com"></script>
-  <script src="https://jsdelivr.net"></script>
-  <style>
-    body { background-color: #cbd5e1; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 20px 0; }
-    .app-container { max-width: 890px; margin: 0 auto; background-color: #f4f5f7; min-height: 80vh; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.15); box-sizing: border-box; padding-bottom: 80px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Base Documentaire FO Nouvelle-Aquitaine</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  body{background:#cbd5e1;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:20px 0}
+  .app-container{max-width:890px;margin:0 auto;background:#f4f5f7;min-height:80vh;border-radius:16px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,.15);padding-bottom:80px}
+  .protege,.protege *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  .protege canvas{pointer-events:none}
+  @media print{html,body{display:none!important}}
+</style>
 </head>
 <body>
-
 <div class="app-container">
-  <!-- EN-TÊTE FO -->
   <header class="bg-[#C8001E] text-white p-6 text-center shadow-md">
     <div class="flex items-center justify-center gap-4">
-      <div class="bg-white text-[#C8001E] font-black text-3xl px-4 py-2 rounded-lg border-2 border-[#C8001E] leading-none">FO</div>
-      <div class="text-left">
-        <h1 class="text-xl font-black tracking-wide leading-tight">BASE DOCUMENTAIRE FO</h1>
-        <p class="text-sm opacity-90 font-medium">Nouvelle-Aquitaine</p>
-      </div>
+      <div class="bg-white text-[#C8001E] font-black text-3xl px-4 py-2 rounded-lg leading-none">FO</div>
+      <div class="text-left"><h1 class="text-xl font-black tracking-wide leading-tight">BASE DOCUMENTAIRE FO</h1><p class="text-sm opacity-90 font-medium">Nouvelle-Aquitaine</p></div>
     </div>
-    <div id="role-badge" class="hidden mt-3 inline-block bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase"></div>
+    <div id="role-badge" style="display:none" class="mt-3 inline-block bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase"></div>
   </header>
 
-  <!-- FORMULAIRES DE DOUBLE ACCÈS CÔTE À CÔTE -->
   <div id="auth-screen" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-    <!-- CONNEXION -->
-    <div class="bg-white p-6 rounded-2xl shadow border border-gray-100">
-      <h2 class="text-lg font-bold text-gray-800 mb-2 border-b pb-2 text-[#C8001E]">Déjà inscrit ? Connexion</h2>
-      <p class="text-xs text-gray-400 mb-4">Saisissez vos identifiants FO validés</p>
-      <form onsubmit="executerConnexion(event)" class="space-y-4">
+    <div class="bg-white p-6 rounded-2xl shadow">
+      <h2 class="text-lg font-bold mb-4 border-b pb-2 text-[#C8001E]">Déjà inscrit ? Connexion</h2>
+      <form id="f-login" class="space-y-4">
         <input type="email" id="login-email" placeholder="Adresse Email" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
         <input type="password" id="login-password" placeholder="Mot de passe" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
-        <button type="submit" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl shadow text-sm hover:bg-slate-700 transition">Se connecter</button>
+        <button class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl text-sm">Se connecter</button>
       </form>
     </div>
-    <!-- INSCRIPTION -->
-    <div class="bg-white p-6 rounded-2xl shadow border border-gray-100">
-      <h2 class="text-lg font-bold text-gray-800 mb-2 border-b pb-2 text-[#C8001E]">Nouveau ? Créer un compte</h2>
-      <p class="text-xs text-gray-400 mb-4">Créez vos accès de départ (Rôle Invité)</p>
-      <form onsubmit="executerInscription(event)" class="space-y-4">
+    <div class="bg-white p-6 rounded-2xl shadow">
+      <h2 class="text-lg font-bold mb-4 border-b pb-2 text-[#C8001E]">Nouveau ? Créer un compte</h2>
+      <form id="f-reg" class="space-y-4">
         <input type="text" id="reg-name" placeholder="Nom complet" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
         <input type="email" id="reg-email" placeholder="Adresse Email" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
         <input type="password" id="reg-password" placeholder="Mot de passe (6+ caractères)" minlength="6" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
-        <button type="submit" class="w-full bg-[#C8001E] text-white font-bold py-3 rounded-xl shadow text-sm hover:bg-red-700 transition">Créer mon compte FO</button>
+        <button class="w-full bg-[#C8001E] text-white font-bold py-3 rounded-xl text-sm">Créer mon compte FO</button>
       </form>
     </div>
   </div>
 
-  <!-- APPLICATION CONNECTÉE -->
-  <div id="main-screen" class="hidden p-6 select-none">
-    <div id="block-invite" class="bg-amber-50 border border-amber-200 text-amber-900 p-5 rounded-2xl mb-6 text-sm hidden shadow-sm">
-      <p class="font-bold mb-1 text-base text-amber-950">🔒 Accès Restreint aux Militants Validés</p>
-      <p class="mb-4">Votre inscription est enregistrée. Les fiches d'analyse juridique FO et les accords sont cryptés et réservés aux adhérents validés.</p>
-      <button id="btn-req" onclick="demanderDroits()" class="w-full bg-[#C8001E] text-white font-bold py-3 rounded-xl text-xs shadow-md">Demander la validation de mon adhésion FO Nouvelle-Aquitaine</button>
+  <div id="main-screen" style="display:none" class="p-6 select-none">
+    <div id="block-invite" style="display:none" class="bg-amber-50 border border-amber-200 text-amber-900 p-5 rounded-2xl mb-6 text-sm">
+      <p class="font-bold mb-1 text-base">🔒 Accès restreint aux militants validés</p>
+      <p class="mb-4">Les fiches juridiques sont réservées aux adhérents validés.</p>
+      <button id="btn-req" class="w-full bg-[#C8001E] text-white font-bold py-3 rounded-xl text-xs">Demander la validation de mon adhésion</button>
     </div>
-    <div id="block-search" class="mb-6 hidden">
-      <input type="text" id="search-input" oninput="filtrerDocs()" placeholder="🔍 Rechercher un mot-clé, article, thème..." class="w-full p-4 border rounded-xl bg-white text-sm shadow-sm outline-none">
+    <div id="block-search" style="display:none" class="mb-6">
+      <input id="search-input" placeholder="🔍 Mot-clé, titre, référence (ex: L2315-7)" class="w-full p-4 border rounded-xl bg-white text-sm shadow-sm outline-none">
     </div>
-    <h3 class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-4">Documents disponibles</h3>
-    <div id="docs-list" class="space-y-4"></div>
-    <div id="block-admin" class="mt-10 bg-white border-2 border-dashed p-6 rounded-2xl hidden shadow-sm">
-      <h3 class="text-base font-bold text-teal-800 mb-2">⚙️ Espace Validation Régionale FO</h3>
+    <div id="docs-wrap">
+      <h3 class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-4">Documents disponibles</h3>
+      <div id="docs-list" class="space-y-4"></div>
+    </div>
+    <div id="block-admin" style="display:none" class="bg-white border-2 border-dashed p-6 rounded-2xl">
+      <h3 class="text-base font-bold text-teal-800 mb-2">⚙️ Demandes en attente</h3>
       <div id="admin-list" class="space-y-2"></div>
     </div>
   </div>
 
-  <!-- NAV BASSE -->
-  <nav id="app-nav" class="fixed bottom-0 left-0 right-0 mx-auto max-w-[890px] bg-white border-t flex shadow-lg hidden">
-    <button onclick="onglet('docs')" id="n-docs" class="flex-1 py-4 text-xs font-bold text-[#C8001E]">📂 Documents</button>
-    <button onclick="onglet('admin')" id="n-admin" class="flex-1 py-4 text-xs font-bold text-gray-400 hidden">⚙️ Gestion Admin</button>
-    <button onclick="quitter()" class="flex-1 py-4 text-xs font-bold text-gray-400">🚪 Déconnexion</button>
+  <nav id="app-nav" style="display:none" class="fixed bottom-0 left-0 right-0 mx-auto max-w-[890px] bg-white border-t shadow-lg">
+    <button id="n-docs" class="flex-1 py-4 text-xs font-bold text-[#C8001E]">📂 Documents</button>
+    <button id="n-admin" style="display:none" class="flex-1 py-4 text-xs font-bold text-gray-400">⚙️ Gestion Admin</button>
+    <button id="n-out" class="flex-1 py-4 text-xs font-bold text-gray-400">🚪 Déconnexion</button>
   </nav>
+
+  <div id="viewer" style="display:none" class="fixed inset-0 z-50 bg-gray-200 flex-col">
+    <div class="bg-[#C8001E] text-white px-4 py-3 flex items-center gap-3">
+      <button id="v-close" class="text-2xl leading-none">←</button><p id="v-title" class="font-bold truncate"></p>
+    </div>
+    <div class="flex-1 overflow-y-auto p-2"><p id="v-msg" class="text-center text-gray-500 py-10"></p><div id="v-box" class="protege mx-auto max-w-3xl"></div></div>
+  </div>
 </div>
 
 <script>
-  const URL_FO = "https://supabase.co";
-  const KEY_FO = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhsb3RiZ3h6Z3l0cXF0eGtvaXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMjc1NDEsImV4cCI6MjEwNjgwMzU0MX0.1O488-rY6b8VonDbw1IgrXw_X9rSAgOLcVy8lJisX3M";
-  const supabase = window.supabase.createClient(URL_FO, KEY_FO);
-  
-  let session = null, profil = null, docs = [], tab = 'docs';
+  // Clé "anon" = publique par nature. Ne JAMAIS mettre la clé service_role ici.
+  const SUPABASE_URL = "https://xlotbgxzgytqqtxkoivb.supabase.co"; // à vérifier : Project Settings > API
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhsb3RiZ3h6Z3l0cXF0eGtvaXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMjc1NDEsImV4cCI6MjEwNjgwMzU0MX0.1O488-rY6b8VonDbw1IgrXw_X9rSAgOLcVy8lJisX3M";
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-  window.onload = () => {
-    supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      session = currentSession;
-      if (currentSession) { await chargerApplicationFO(); } 
-      else { basculerEcran('auth'); }
-    });
+  const $ = (id) => document.getElementById(id);
+  const vis = (id, on, d = "block") => ($(id).style.display = on ? d : "none");
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const norm = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  let profil = null, docs = [], loadedFor = null;
+
+  // --- Auth : callback synchrone, appels Supabase différés (évite le deadlock) ---
+  sb.auth.onAuthStateChange((event, session) => {
+    if (!session) { profil = null; loadedFor = null; screen("auth"); return; }
+    if (loadedFor === session.user.id) return;
+    loadedFor = session.user.id;
+    setTimeout(() => charger(session), 0);
+  });
+
+  $("f-login").onsubmit = async (e) => {
+    e.preventDefault();
+    const { error } = await sb.auth.signInWithPassword({ email: $("login-email").value, password: $("login-password").value });
+    if (error) alert("Connexion refusée : " + error.message);
   };
 
-  async function executerInscription(e) {
+  $("f-reg").onsubmit = async (e) => {
     e.preventDefault();
-    const name = document.getElementById('reg-name').value;
-    const email = document.getElementById('reg-email').value;
-    const pass = document.getElementById('reg-password').value;
-    const { error } = await supabase.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
-    if (error) { alert(error.message); } 
-    else { alert("Compte créé dans la base FO ! Connectez-vous sur le cadre de gauche."); location.reload(); }
+    const { data, error } = await sb.auth.signUp({
+      email: $("reg-email").value, password: $("reg-password").value,
+      options: { data: { full_name: $("reg-name").value } },
+    });
+    if (error) return alert("Inscription refusée : " + error.message);
+    if (!data.session) alert("Compte créé. Confirme ton email (vérifie aussi les spams), puis connecte-toi.");
+  };
+
+  async function charger(session) {
+    const { data: p, error } = await sb.from("profiles").select("*").eq("id", session.user.id).single();
+    if (error || !p) { alert("Profil introuvable : " + (error?.message || "trigger handle_new_user absent ?")); return; }
+    profil = p;
+    $("role-badge").textContent = "Espace " + p.role; vis("role-badge", true, "inline-block");
+    const inv = p.role === "invite";
+    vis("block-invite", inv); vis("block-search", !inv); vis("n-admin", p.role === "admin");
+    const b = $("btn-req");
+    b.disabled = !!p.requested_adherent;
+    if (p.requested_adherent) b.textContent = "⏳ En attente de validation...";
+    const { data: d } = await sb.from("documents").select("*").order("title");
+    docs = d || [];
+    afficherDocs();
+    if (p.role === "admin") await chargerAttente();
+    onglet("docs"); screen("app");
   }
 
-  async function executerConnexion(e) {
-    e.preventDefault();
-    const email = document.getElementById('login-email').value;
-    const pass = document.getElementById('login-password').value;
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    if (error) alert("Connexion refusée : Identifiants FO invalides.");
-  }
+  $("btn-req").onclick = async () => {
+    const { error } = await sb.rpc("request_adherent");
+    if (error) return alert("Erreur : " + error.message);
+    profil.requested_adherent = true; $("btn-req").disabled = true; $("btn-req").textContent = "⏳ En attente de validation...";
+  };
 
-  async function chargerApplicationFO() {
-    const { data: p } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-    if (p) {
-      profil = p;
-      document.getElementById('role-badge').classList.remove('hidden');
-      document.getElementById('role-badge').innerText = "Espace " + p.role;
-      if (p.role === 'invite') {
-        document.getElementById('block-invite').classList.remove('hidden');
-        if (p.requested_adherent) {
-          const b = document.getElementById('btn-req'); b.disabled = true;
-          b.innerText = "⏳ En attente de validation régionale...";
-          b.className = "w-full bg-gray-400 text-white font-bold py-3 rounded-xl text-xs cursor-not-allowed";
-        }
-      } else {
-        document.getElementById('block-search').classList.remove('hidden');
-        if (p.role === 'admin') document.getElementById('n-admin').classList.remove('hidden');
-      }
-      await chargerFichesJuridiques();
-      basculerEcran('app');
-    }
-  }
-
-  async function demanderDroits() {
-    await supabase.from('profiles').update({ requested_adherent: true, requested_at: new Date() }).eq('id', profil.id);
-    alert("Demande envoyée au Secrétariat."); location.reload();
-  }
-
-  async function chargerFichesJuridiques() {
-    docs = [
-      { title: "Livret d'accueil des CSE de la Région", reference: "FO Régional - Guide 2026", description: "Cadre d'action des élus, obligations de l'employeur.", is_public: true },
-      { title: "Calcul et suivi du crédit d'heures de délégation", reference: "Art. L2315-7 Code du travail", description: "Règles d'utilisation, fiches de riposte.", is_public: false },
-      { title: "Orientations stratégiques du CSE", reference: "Art. L2312-8 Code du travail", description: "Dossier d'analyse méthodique pour formuler un avis.", is_public: false }
-    ];
-    filtrerDocs();
-    if (profil.role === 'admin') await chargerMilitantsAttente();
-  }
-
-  function filtrerDocs() {
-    const q = document.getElementById('search-input').value.toLowerCase(), c = document.getElementById('docs-list');
-    c.innerHTML = '';
-    docs.forEach(d => {
-      if (profil.role === 'invite' && !d.is_public) return;
-      if (d.title.toLowerCase().includes(q)) {
-        const div = document.createElement('div'); div.className = "bg-white p-5 rounded-xl border-l-4 border-[#C8001E] shadow-sm";
-        div.innerHTML = `<div class="flex justify-between items-start mb-1"><h4 class="font-bold text-gray-900 text-base">${d.title}</h4><span class="text-[10px] ${d.is_public ? 'bg-red-50 text-[#C8001E]':'bg-amber-50 text-amber-700'} font-bold px-2 py-0.5 rounded-full border">${d.is_public ? '🔓 Public':'🛡️ Premium'}</span></div><p class="text-xs text-gray-400 italic mb-2">Réf: ${d.reference}</p><p class="text-sm text-gray-600 mb-4">${d.description}</p><button onclick="alert('Sécurité Canvas Active')" class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs">👁️ Consulter la fiche technique</button>`;
+  // --- Documents ---
+  function afficherDocs() {
+    const t = norm($("search-input").value).split(/\s+/).filter(Boolean), c = $("docs-list");
+    c.innerHTML = "";
+    docs.filter((d) => { const h = norm([d.title, d.reference, d.description, ...(d.keywords || [])].join(" ")); return t.every((x) => h.includes(x)); })
+      .forEach((d) => {
+        const div = document.createElement("div");
+        div.className = "bg-white p-5 rounded-xl border-l-4 border-[#C8001E] shadow-sm";
+        div.innerHTML = `<div class="flex justify-between items-start mb-1"><h4 class="font-bold text-base">${esc(d.title)}</h4><span class="text-[10px] font-bold px-2 py-0.5 rounded-full border">${d.is_public ? "🔓 Public" : "🛡️ Adhérent"}</span></div>
+          <p class="text-xs text-gray-400 italic mb-2">Réf : ${esc(d.reference)}</p><p class="text-sm text-gray-600 mb-4">${esc(d.description)}</p>
+          <button class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs">👁️ Consulter</button>`;
+        div.querySelector("button").onclick = () => ouvrir(d);
         c.appendChild(div);
+      });
+    if (!c.children.length) c.innerHTML = '<p class="text-sm text-gray-400 text-center py-6">Aucun document.</p>';
+  }
+  $("search-input").oninput = afficherDocs;
+
+  // --- Lecteur PDF en canvas (pas de barre native, pas de téléchargement) ---
+  const bloque = (e) => e.preventDefault();
+  const touches = (e) => { if ((e.ctrlKey || e.metaKey) && "psu".includes(e.key.toLowerCase())) e.preventDefault(); };
+  let ferme = false;
+  async function ouvrir(d) {
+    ferme = false; vis("viewer", true, "flex"); $("v-title").textContent = d.title;
+    $("v-msg").textContent = "Chargement…"; $("v-box").innerHTML = "";
+    addEventListener("contextmenu", bloque); addEventListener("keydown", touches);
+    try {
+      const { data, error } = await sb.storage.from("documents").createSignedUrl(d.storage_path, 120);
+      if (error) throw error;
+      const pdf = await pdfjsLib.getDocument(data.signedUrl).promise, dpr = devicePixelRatio || 1;
+      for (let i = 1; i <= pdf.numPages && !ferme; i++) {
+        const p = await pdf.getPage(i), s = $("v-box").clientWidth / p.getViewport({ scale: 1 }).width, vp = p.getViewport({ scale: s * dpr });
+        const c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height; c.style.cssText = "width:100%;margin-bottom:8px;background:#fff";
+        $("v-box").appendChild(c); await p.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
+        if (i === 1) $("v-msg").textContent = "";
       }
+    } catch (e) { $("v-msg").textContent = "Document inaccessible : " + (e.message || e); }
+  }
+  $("v-close").onclick = () => { ferme = true; vis("viewer", false); $("v-box").innerHTML = ""; removeEventListener("contextmenu", bloque); removeEventListener("keydown", touches); };
+
+  // --- Admin ---
+  async function chargerAttente() {
+    const { data: list } = await sb.from("profiles").select("id,email,full_name").eq("role", "invite").eq("requested_adherent", true);
+    const c = $("admin-list"); c.innerHTML = "";
+    if (!list?.length) { c.innerHTML = '<p class="text-xs text-gray-400 italic">Aucune demande.</p>'; return; }
+    list.forEach((u) => {
+      const div = document.createElement("div");
+      div.className = "flex items-center justify-between bg-gray-50 p-4 rounded-xl border text-xs gap-3";
+      div.innerHTML = `<div class="truncate"><p class="font-bold truncate">${esc(u.full_name || "Militant")}</p><p class="text-gray-400 truncate">${esc(u.email)}</p></div><button class="bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg shrink-0">Accepter</button>`;
+      div.querySelector("button").onclick = async () => {
+        const { error } = await sb.from("profiles").update({ role: "adherent", requested_adherent: false }).eq("id", u.id);
+        if (error) alert(error.message); else chargerAttente();
+      };
+      c.appendChild(div);
     });
   }
 
-  async function chargerMilitantsAttente() {
-    const { data: list } = await supabase.from('profiles').select('id, email, full_name').eq('role', 'invite').eq('requested_adherent', true);
-    const c = document.getElementById('admin-list'); c.innerHTML = '';
-    if (list && list.length > 0) {
-      list.forEach(u => {
-        const div = document.createElement('div'); div.className = "flex items-center justify-between bg-gray-50 p-4 rounded-xl border text-xs gap-3";
-        div.innerHTML = `<div class="truncate"><p class="font-bold text-gray-800 truncate">${u.full_name || 'Militant'}</p><p class="text-gray-400 truncate">${u.email}</p></div><button onclick="promouvoir('${u.id}')" class="bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg text-xs shrink-0">Accepter</button>`;
-        c.appendChild(div);
-      });
-    } else { c.innerHTML = '<p class="text-xs text-gray-400 italic py-2">Aucune demande en attente.</p>'; }
-  }
-
-  async function promouvoir(id) {
-    const { error } = await supabase.from('profiles').update({ role: 'adherent', requested_adherent: false }).eq('id', id);
-    if (!error) { alert("Militant validé !"); await chargerMilitantsAttente(); await chargerFichesJuridiques(); }
-  }
-
+  // --- Navigation ---
   function onglet(id) {
-    tab = id;
-    document.getElementById('n-docs').className = id === 'docs' ? "flex-1 py-4 text-xs font-bold text-[#C8001E]" : "flex-1 py-4 text-xs font-bold text-gray-400";
-    document.getElementById('n-admin').className = id === 'admin' ? "flex-1 py-4 text-xs font-bold text-[#C8001E]" : "flex-1 py-4 text-xs font-bold text-gray-400";
-    document.getElementById('block-search').style.display = (id === 'docs' && profil.role !== 'invite') ? 'block' : 'none';
-    document.getElementById('docs-list').style.display = id === 'docs' ? 'block' : 'none';
-    document.getElementById('block-admin').style.display = id === 'admin' ? 'block' : 'none';
+    const a = id === "admin" && profil?.role === "admin";
+    $("n-docs").className = "flex-1 py-4 text-xs font-bold " + (a ? "text-gray-400" : "text-[#C8001E]");
+    $("n-admin").className = "flex-1 py-4 text-xs font-bold " + (a ? "text-[#C8001E]" : "text-gray-400");
+    vis("docs-wrap", !a); vis("block-admin", a); vis("block-search", !a && profil?.role !== "invite");
+    if (a) chargerAttente();
   }
-
-  function basculerEcran(t) {
-    document.getElementById('auth-screen').style.display = t === 'auth' ? 'grid' : 'none';
-    document.getElementById('main-screen').style.display = t === 'app' ? 'block' : 'none';
-    document.getElementById('app-nav').style.display = t === 'app' ? 'flex' : 'none';
-  }
-
-  async function quitter() { await supabase.auth.signOut(); location.reload(); }
+  $("n-docs").onclick = () => onglet("docs");
+  $("n-admin").onclick = () => onglet("admin");
+  $("n-out").onclick = () => sb.auth.signOut();
+  function screen(t) { vis("auth-screen", t === "auth", "grid"); vis("main-screen", t === "app"); vis("app-nav", t === "app", "flex"); vis("role-badge", t === "app", "inline-block"); }
 </script>
 </body>
 </html>
