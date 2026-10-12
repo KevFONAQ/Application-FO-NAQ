@@ -147,7 +147,7 @@
         const div = document.createElement("div");
         div.className = "bg-white p-5 rounded-xl border-l-4 border-[#C8001E] shadow-sm";
         div.innerHTML = `<div class="flex justify-between items-start mb-1"><h4 class="font-bold text-base">${esc(d.title)}</h4><span class="text-[10px] font-bold px-2 py-0.5 rounded-full border">${d.is_public ? "🔓 Public" : "🛡️ Adhérent"}</span></div>
-          <p class="text-xs text-gray-400 italic mb-2">Réf : ${esc(d.reference)}</p><p class="text-sm text-gray-600 mb-4">${esc(d.description)}</p>
+          <p class="text-xs text-gray-400 italic mb-2">Réf : ${esc(d.reference)}</p>` : ""}<p class="text-sm text-gray-600 mb-4">${esc(d.description)}</p>
           <button class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs">👁️ Consulter</button>`;
         div.querySelector("button").onclick = () => ouvrir(d);
         c.appendChild(div);
