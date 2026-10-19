@@ -670,6 +670,7 @@ const uniqueName = (n) => {
   return `${base}-${i}.pdf`;
 };
 const titleFrom = (n) => n.replace(/\.pdf$/i, "").replace(/_+/g, " ").replace(/\s+/g, " ").trim();
+const val = (x) => { x = String(x ?? "").trim(); return x && x.toLowerCase() !== "null" ? x : null; };
 const kwParse = (s) => [...new Set(String(s || "").split(",").map((k) => k.trim().toLowerCase()).filter(Boolean))];
 const blankItem = () => ({ title: "", category: "", reference: "", keywords: "", description: "", is_public: false, status: "idle", err: "" });
 
@@ -703,8 +704,8 @@ async function publish() {
         uploaded = true; S.files.push(path);
       }
       const { data, error } = await sb.from("documents").insert({
-        title: q.title.trim(), category: q.category.trim() || null, reference: q.reference.trim() || null,
-        description: q.description.trim() || null, keywords: kwParse(q.keywords), storage_path: path, is_public: false,
+        title: q.title.trim(), category: val(q.category), reference: val(q.reference),
+        description: val(q.description), keywords: kwParse(q.keywords), storage_path: path, is_public: false,
       }).select("id").single();
       if (error) throw error;
       if (q.is_public) { const e = await setPublic(data.id, true); if (e) throw e; }
@@ -842,8 +843,8 @@ document.addEventListener("click", async (e) => {
       const v = (k) => $("e-" + k).value.trim();
       if (!v("title")) return toast("Ajoutez un titre.", "err");
       const { error } = await sb.from("documents").update({
-        title: v("title"), category: v("category") || null, reference: v("reference") || null,
-        description: v("description") || null, keywords: kwParse(v("keywords")),
+        title: v("title"), category: val(v("category")), reference: val(v("reference")),
+        description: val(v("description")), keywords: kwParse(v("keywords")),
       }).eq("id", id);
       if (error) return toast(errMsg(error), "err");
       S.editing = null; await loadDocs(); renderAdmin(); toast("Modifications enregistrées");
