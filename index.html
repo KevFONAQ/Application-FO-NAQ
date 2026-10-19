@@ -2,211 +2,875 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Base Documentaire FO Nouvelle-Aquitaine</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#C8001E">
+<title>Base documentaire FO Nouvelle-Aquitaine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: {
+      fo:    { DEFAULT: '#C8001E', deep: '#7A0013', soft: '#FBE7EA' },
+      ink:   { DEFAULT: '#1C2430', soft: '#566173', faint: '#8A93A3' },
+      paper: '#EEF0F3', line: '#DCE0E6',
+    },
+    fontFamily: { display: ['"Barlow Condensed"', 'sans-serif'], sans: ['Barlow', 'system-ui', 'sans-serif'] },
+  } } }
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
-  body{background:#cbd5e1;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:20px 0}
-  .app-container{max-width:890px;margin:0 auto;background:#f4f5f7;min-height:80vh;border-radius:16px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,.15);padding-bottom:80px}
-  .protege,.protege *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-  .protege canvas{pointer-events:none}
-  @media print{html,body{display:none!important}}
+  html { -webkit-text-size-adjust: 100%; }
+  body { background: #EEF0F3; -webkit-tap-highlight-color: transparent; font-size: 16px; }
+  :focus-visible { outline: 3px solid #C8001E; outline-offset: 2px; border-radius: 10px; }
+  .cb { accent-color: #C8001E; width: 22px; height: 22px; flex-shrink: 0; cursor: pointer; }
+  .no-sb::-webkit-scrollbar { display: none } .no-sb { scrollbar-width: none }
+  .banner { background:
+      radial-gradient(120% 90% at 100% 0%, rgba(255,255,255,.12) 0, transparent 55%),
+      repeating-linear-gradient(-45deg, rgba(0,0,0,.05) 0 2px, transparent 2px 14px),
+      #C8001E; }
+  .shout { font-family: "Barlow Condensed", sans-serif; font-weight: 800; letter-spacing: -.01em; line-height: .92; }
+  .spine { position: absolute; left: 0; top: 0; bottom: 0; width: 7px; border-radius: 18px 0 0 18px; }
+  .tab { clip-path: polygon(0 0, 58% 0, 66% 100%, 0 100%); }
+  .protege, .protege * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .protege canvas { pointer-events: none; display: block; width: 100%; height: 100%; }
+  .page { position: relative; margin: 0 auto 12px; background: #fff; border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.35); overflow: hidden; }
+  .drag { border-color: #C8001E !important; background: #FBE7EA !important; }
+  .enter { animation: enter .45s cubic-bezier(.2,.8,.2,1) both }
+  @keyframes enter { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
+  .spin { animation: spin 1s linear infinite } @keyframes spin { to { transform: rotate(360deg) } }
+  .sheet { animation: sheet .28s cubic-bezier(.2,.8,.2,1) both }
+  @keyframes sheet { from { transform: translateY(100%) } to { transform: none } }
+  @media (prefers-reduced-motion: reduce) { .enter, .sheet { animation: none } }
+  @media print { html, body { display: none !important } }
 </style>
 </head>
-<body>
-<div class="app-container">
-  <header class="bg-[#C8001E] text-white p-6 text-center shadow-md">
-    <div class="flex items-center justify-center gap-4">
-      <div class="bg-white text-[#C8001E] font-black text-3xl px-4 py-2 rounded-lg leading-none">FO</div>
-      <div class="text-left"><h1 class="text-xl font-black tracking-wide leading-tight">BASE DOCUMENTAIRE FO</h1><p class="text-sm opacity-90 font-medium">Nouvelle-Aquitaine</p></div>
-    </div>
-    <div id="role-badge" style="display:none" class="mt-3 inline-block bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase"></div>
-  </header>
+<body class="font-sans text-ink antialiased">
 
-  <div id="auth-screen" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-    <div class="bg-white p-6 rounded-2xl shadow">
-      <h2 class="text-lg font-bold mb-4 border-b pb-2 text-[#C8001E]">Déjà inscrit ? Connexion</h2>
-      <form id="f-login" class="space-y-4">
-        <input type="email" id="login-email" placeholder="Adresse Email" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
-        <input type="password" id="login-password" placeholder="Mot de passe" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
-        <button class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl text-sm">Se connecter</button>
+<!-- ================= CONNEXION / INSCRIPTION ================= -->
+<div id="auth" class="hidden min-h-screen">
+  <section class="banner relative overflow-hidden px-6 pt-12 pb-36 text-white">
+    <div class="mx-auto max-w-md">
+      <div class="flex items-center gap-3">
+        <span class="grid h-12 w-12 place-items-center rounded-xl bg-white font-display text-2xl font-extrabold text-fo">FO</span>
+        <span class="leading-tight"><b class="block text-[17px]">Force Ouvrière</b><span class="text-sm opacity-85">Nouvelle-Aquitaine</span></span>
+      </div>
+      <h1 class="shout enter mt-10 text-[54px] sm:text-[64px]">Vos droits,<br>noir sur blanc.</h1>
+      <p class="mt-4 max-w-xs text-[17px] opacity-90">Conventions, accords et fiches juridiques réunis pour les élus et adhérents FO.</p>
+    </div>
+  </section>
+  <div class="relative -mt-24 px-4 pb-12">
+    <div class="mx-auto max-w-md rounded-[28px] bg-white p-6 shadow-[0_20px_50px_-12px_rgba(28,36,48,.35)]">
+      <div class="grid grid-cols-2 gap-1 rounded-2xl bg-paper p-1 text-[15px] font-semibold" role="tablist">
+        <button data-act="authmode" data-m="login" id="m-login" class="rounded-xl py-3">Connexion</button>
+        <button data-act="authmode" data-m="signup" id="m-signup" class="rounded-xl py-3">Créer un compte</button>
+      </div>
+      <form id="f-login" class="mt-6 space-y-4">
+        <label class="block"><span class="mb-1.5 block text-sm font-semibold text-ink-soft">Adresse email</span>
+          <input name="email" type="email" required autocomplete="email" class="w-full rounded-2xl border-2 border-line bg-white px-4 py-3.5 text-[16px] outline-none transition focus:border-fo"></label>
+        <label class="block"><span class="mb-1.5 block text-sm font-semibold text-ink-soft">Mot de passe</span>
+          <input name="password" type="password" required autocomplete="current-password" class="w-full rounded-2xl border-2 border-line bg-white px-4 py-3.5 text-[16px] outline-none transition focus:border-fo"></label>
+        <button class="w-full rounded-2xl bg-fo py-4 text-[17px] font-bold text-white transition hover:bg-fo-deep active:scale-[.99]">Se connecter</button>
+      </form>
+      <form id="f-signup" class="mt-6 hidden space-y-4">
+        <label class="block"><span class="mb-1.5 block text-sm font-semibold text-ink-soft">Prénom et nom</span>
+          <input name="name" required autocomplete="name" class="w-full rounded-2xl border-2 border-line bg-white px-4 py-3.5 text-[16px] outline-none transition focus:border-fo"></label>
+        <label class="block"><span class="mb-1.5 block text-sm font-semibold text-ink-soft">Adresse email</span>
+          <input name="email" type="email" required autocomplete="email" class="w-full rounded-2xl border-2 border-line bg-white px-4 py-3.5 text-[16px] outline-none transition focus:border-fo"></label>
+        <label class="block"><span class="mb-1.5 block text-sm font-semibold text-ink-soft">Mot de passe <span class="font-normal text-ink-faint">(6 caractères minimum)</span></span>
+          <input name="password" type="password" minlength="6" required autocomplete="new-password" class="w-full rounded-2xl border-2 border-line bg-white px-4 py-3.5 text-[16px] outline-none transition focus:border-fo"></label>
+        <button class="w-full rounded-2xl bg-fo py-4 text-[17px] font-bold text-white transition hover:bg-fo-deep active:scale-[.99]">Créer mon compte</button>
+        <p class="text-center text-sm text-ink-soft">Vous accédez d'abord à un document de découverte. La région valide ensuite votre adhésion.</p>
       </form>
     </div>
-    <div class="bg-white p-6 rounded-2xl shadow">
-      <h2 class="text-lg font-bold mb-4 border-b pb-2 text-[#C8001E]">Nouveau ? Créer un compte</h2>
-      <form id="f-reg" class="space-y-4">
-        <input type="text" id="reg-name" placeholder="Nom complet" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
-        <input type="email" id="reg-email" placeholder="Adresse Email" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
-        <input type="password" id="reg-password" placeholder="Mot de passe (6+ caractères)" minlength="6" required class="w-full p-3 border rounded-xl text-sm outline-none focus:border-[#C8001E]">
-        <button class="w-full bg-[#C8001E] text-white font-bold py-3 rounded-xl text-sm">Créer mon compte FO</button>
-      </form>
-    </div>
-  </div>
-
-  <div id="main-screen" style="display:none" class="p-6 select-none">
-    <div id="block-invite" style="display:none" class="bg-amber-50 border border-amber-200 text-amber-900 p-5 rounded-2xl mb-6 text-sm">
-      <p class="font-bold mb-1 text-base">🔒 Accès restreint aux militants validés</p>
-      <p class="mb-4">Les fiches juridiques sont réservées aux adhérents validés.</p>
-      <button id="btn-req" class="w-full bg-[#C8001E] text-white font-bold py-3 rounded-xl text-xs">Demander la validation de mon adhésion</button>
-    </div>
-    <div id="block-search" style="display:none" class="mb-6">
-      <input id="search-input" placeholder="🔍 Mot-clé, titre, référence (ex: L2315-7)" class="w-full p-4 border rounded-xl bg-white text-sm shadow-sm outline-none">
-    </div>
-    <div id="docs-wrap">
-      <h3 class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-4">Documents disponibles</h3>
-      <div id="docs-list" class="space-y-4"></div>
-    </div>
-    <div id="block-admin" style="display:none" class="bg-white border-2 border-dashed p-6 rounded-2xl">
-      <h3 class="text-base font-bold text-teal-800 mb-2">⚙️ Demandes en attente</h3>
-      <div id="admin-list" class="space-y-2"></div>
-    </div>
-  </div>
-
-  <nav id="app-nav" style="display:none" class="fixed bottom-0 left-0 right-0 mx-auto max-w-[890px] bg-white border-t shadow-lg">
-    <button id="n-docs" class="flex-1 py-4 text-xs font-bold text-[#C8001E]">📂 Documents</button>
-    <button id="n-admin" style="display:none" class="flex-1 py-4 text-xs font-bold text-gray-400">⚙️ Gestion Admin</button>
-    <button id="n-out" class="flex-1 py-4 text-xs font-bold text-gray-400">🚪 Déconnexion</button>
-  </nav>
-
-  <div id="viewer" style="display:none" class="fixed inset-0 z-50 bg-gray-200 flex-col">
-    <div class="bg-[#C8001E] text-white px-4 py-3 flex items-center gap-3">
-      <button id="v-close" class="text-2xl leading-none">←</button><p id="v-title" class="font-bold truncate"></p>
-    </div>
-    <div class="flex-1 overflow-y-auto p-2"><p id="v-msg" class="text-center text-gray-500 py-10"></p><div id="v-box" class="protege mx-auto max-w-3xl"></div></div>
   </div>
 </div>
 
+<!-- ================= APPLICATION ================= -->
+<div id="app" class="hidden min-h-screen">
+  <main id="view" class="pb-32"></main>
+  <nav class="fixed inset-x-0 bottom-0 z-30 px-3" style="padding-bottom:max(10px,env(safe-area-inset-bottom))">
+    <div id="nav" class="mx-auto flex max-w-md rounded-[22px] bg-ink p-1.5 shadow-[0_12px_30px_-8px_rgba(28,36,48,.6)]"></div>
+  </nav>
+</div>
+
+<input id="file-in" type="file" accept="application/pdf,.pdf" multiple class="hidden">
+
+<!-- ================= LECTEUR ================= -->
+<div id="viewer" class="fixed inset-0 z-50 hidden flex-col bg-[#2A313C]">
+  <div class="flex items-center gap-2 bg-ink px-3 py-2.5 text-white" style="padding-top:max(10px,env(safe-area-inset-top))">
+    <button data-act="vclose" class="grid h-11 w-11 place-items-center rounded-full hover:bg-white/10" aria-label="Fermer le document" id="v-back"></button>
+    <div class="min-w-0 flex-1"><p id="v-title" class="truncate font-semibold"></p><p id="v-sub" class="truncate text-[13px] text-white/60"></p></div>
+    <button data-act="zoom" data-z="-1" class="grid h-11 w-11 place-items-center rounded-full text-2xl hover:bg-white/10" aria-label="Réduire">−</button>
+    <button data-act="zoom" data-z="1" class="grid h-11 w-11 place-items-center rounded-full text-2xl hover:bg-white/10" aria-label="Agrandir">+</button>
+  </div>
+  <div id="v-scroll" class="relative flex-1 overflow-auto px-3 py-4">
+    <p id="v-msg" class="py-20 text-center text-white/70"></p>
+    <div id="v-box" class="protege mx-auto"></div>
+  </div>
+  <div id="v-page" class="pointer-events-none absolute bottom-6 left-1/2 hidden -translate-x-1/2 rounded-full bg-ink/90 px-4 py-2 text-sm font-semibold text-white shadow-lg" style="margin-bottom:env(safe-area-inset-bottom)"></div>
+</div>
+
+<!-- ================= CONFIRMATION + NOTIFICATIONS ================= -->
+<div id="modal" class="fixed inset-0 z-[60] hidden items-end justify-center bg-ink/50 sm:items-center sm:p-6">
+  <div class="sheet w-full max-w-sm rounded-t-[28px] bg-white p-6 sm:rounded-[28px]" style="padding-bottom:max(24px,env(safe-area-inset-bottom))">
+    <p id="modal-msg" class="text-[17px] leading-snug"></p>
+    <div class="mt-6 grid grid-cols-2 gap-2">
+      <button id="modal-no" class="rounded-2xl bg-paper py-3.5 font-semibold">Annuler</button>
+      <button id="modal-ok" class="rounded-2xl bg-fo py-3.5 font-semibold text-white"></button>
+    </div>
+  </div>
+</div>
+<div id="toasts" class="pointer-events-none fixed inset-x-0 top-3 z-[70] flex flex-col items-center gap-2 px-4" aria-live="polite"></div>
+
 <script>
-  // Clé "anon" = publique par nature. Ne JAMAIS mettre la clé service_role ici.
-  const SUPABASE_URL = "https://xlotbgxzgytqqtxkoivb.supabase.co"; // à vérifier : Project Settings > API
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhsb3RiZ3h6Z3l0cXF0eGtvaXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMjc1NDEsImV4cCI6MjEwNjgwMzU0MX0.1O488-rY6b8VonDbw1IgrXw_X9rSAgOLcVy8lJisX3M";
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+/* ================= CONFIGURATION ================= */
+const SUPABASE_URL = "https://xlotbgxzgytqqtxkoivb.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhsb3RiZ3h6Z3l0cXF0eGtvaXZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMjc1NDEsImV4cCI6MjEwNjgwMzU0MX0.1O488-rY6b8VonDbw1IgrXw_X9rSAgOLcVy8lJisX3M";
+const MAX_MB = 50;          // limite par fichier du plan gratuit Supabase
+const BUCKET = "documents";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-  const $ = (id) => document.getElementById(id);
-  const vis = (id, on, d = "block") => ($(id).style.display = on ? d : "none");
-  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const norm = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  let profil = null, docs = [], loadedFor = null;
+/* ================= OUTILS ================= */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const fmtMB = (b) => (b / 1048576).toFixed(1).replace(".", ",") + " Mo";
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "";
+const plural = (n, s, p) => `${n} ${n > 1 ? (p || s + "s") : s}`;
+const initials = (n, e) => ((n || e || "?").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("") || "?").toUpperCase();
+const ROLES = { invite: "Invité", adherent: "Adhérent", admin: "Administrateur" };
+const NONE = "__none";
 
-  // --- Auth : callback synchrone, appels Supabase différés (évite le deadlock) ---
-  sb.auth.onAuthStateChange((event, session) => {
-    if (!session) { profil = null; loadedFor = null; screen("auth"); return; }
-    if (loadedFor === session.user.id) return;
-    loadedFor = session.user.id;
-    setTimeout(() => charger(session), 0);
+/* Couleur stable par catégorie : chaque rayon garde sa couleur */
+const SHELF = ["#C8001E", "#2B4C9B", "#1F7A5A", "#B7791F", "#6B3FA0", "#0F7C8C", "#B03A6F", "#4A5568"];
+const catColor = (c) => { if (!c) return "#8A93A3"; let h = 0; for (const ch of c) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return SHELF[h % SHELF.length]; };
+
+const P = {
+  home: 'M2.25 12 11.2 3.05a1.13 1.13 0 0 1 1.6 0L21.75 12M4.5 9.75v10.13c0 .62.5 1.12 1.13 1.12H9.75v-4.88c0-.62.5-1.12 1.13-1.12h2.24c.63 0 1.13.5 1.13 1.12V21h4.13c.62 0 1.12-.5 1.12-1.13V9.75',
+  book: 'M12 6.04A8.97 8.97 0 0 0 6 3.75c-1.05 0-2.06.18-3 .51v14.25A8.99 8.99 0 0 1 6 18c2.3 0 4.41.87 6 2.29m0-14.25a8.97 8.97 0 0 1 6-2.29c1.05 0 2.06.18 3 .51v14.25A8.99 8.99 0 0 0 18 18a8.97 8.97 0 0 0-6 2.29m0-14.25v14.25',
+  shield: 'M9 12.75 11.25 15 15 9.75m-3-7.04A11.96 11.96 0 0 1 3.6 6 11.99 11.99 0 0 0 3 9.75c0 5.59 3.82 10.29 9 11.62 5.18-1.33 9-6.03 9-11.62 0-1.31-.21-2.57-.6-3.75h-.15c-3.2 0-6.1-1.25-8.25-3.29Z',
+  user: 'M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.12a7.5 7.5 0 0 1 15 0A17.93 17.93 0 0 1 12 21.75c-2.68 0-5.22-.58-7.5-1.63Z',
+  search: 'm21 21-5.2-5.2m0 0A7.5 7.5 0 1 0 5.2 5.2a7.5 7.5 0 0 0 10.6 10.6Z',
+  doc: 'M19.5 14.25v-2.63a3.38 3.38 0 0 0-3.38-3.37h-1.5a1.13 1.13 0 0 1-1.12-1.13v-1.5a3.38 3.38 0 0 0-3.38-3.37H8.25m2.25 0H5.63c-.63 0-1.13.5-1.13 1.12v17.26c0 .62.5 1.12 1.13 1.12h12.74c.63 0 1.13-.5 1.13-1.13V11.25a9 9 0 0 0-9-9Z',
+  upload: 'M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5',
+  trash: 'm14.74 9-.35 9m-4.78 0L9.26 9m9.97-3.21c.34.05.68.1 1.02.17m-1.02-.17L18.16 19.67a2.25 2.25 0 0 1-2.24 2.08H8.08a2.25 2.25 0 0 1-2.24-2.08L4.77 5.79m14.46 0a48.1 48.1 0 0 0-3.48-.4m-12 .57c.34-.06.68-.11 1.02-.17m0 0a48.1 48.1 0 0 1 3.48-.4m7.5 0v-.91c0-1.18-.91-2.17-2.09-2.2a51.96 51.96 0 0 0-3.32 0c-1.18.03-2.09 1.02-2.09 2.2v.91m7.5 0a48.67 48.67 0 0 0-7.5 0',
+  pencil: 'm16.86 4.49 1.69-1.69a1.88 1.88 0 1 1 2.65 2.65L10.58 16.07a4.5 4.5 0 0 1-1.9 1.13L6 18l.8-2.69a4.5 4.5 0 0 1 1.13-1.9l8.93-8.92Zm0 0L19.5 7.13',
+  lock: 'M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z',
+  logout: 'M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9',
+  x: 'M6 18 18 6M6 6l12 12',
+  back: 'M15.75 19.5 8.25 12l7.5-7.5',
+  check: 'm4.5 12.75 6 6 9-13.5',
+  clock: 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+  users: 'M15 19.13a9.38 9.38 0 0 0 2.63.37 9.34 9.34 0 0 0 4.12-.95 4.13 4.13 0 0 0-7.53-2.5M15 19.13v-.01c0-1.11-.29-2.16-.79-3.07M15 19.13v.1A12.32 12.32 0 0 1 8.62 21c-2.33 0-4.51-.65-6.37-1.77v-.1a6.38 6.38 0 0 1 11.96-3.07M12 6.38a3.38 3.38 0 1 1-6.75 0 3.38 3.38 0 0 1 6.75 0Zm8.25 2.25a2.63 2.63 0 1 1-5.25 0 2.63 2.63 0 0 1 5.25 0Z',
+  eye: 'M2.04 12.32a1.01 1.01 0 0 1 0-.64C3.42 7.51 7.36 4.5 12 4.5c4.64 0 8.57 3 9.96 7.18.07.2.07.43 0 .64C20.58 16.49 16.64 19.5 12 19.5c-4.64 0-8.57-3-9.96-7.18ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
+  history: 'M12 6v6l4 2M3.5 12a8.5 8.5 0 1 0 2.5-6M3 4v4h4',
+  chevron: 'm8.25 4.5 7.5 7.5-7.5 7.5',
+};
+const ic = (n, c = "w-6 h-6") => `<svg class="${c}" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="${P[n]}"/></svg>`;
+const spinner = (c = "w-4 h-4") => `<svg class="${c} spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity=".25"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`;
+
+function toast(msg, type = "ok") {
+  const el = document.createElement("div");
+  el.className = `enter pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl px-4 py-3.5 text-[15px] font-medium shadow-xl ${type === "err" ? "bg-ink text-white" : "bg-white text-ink ring-1 ring-line"}`;
+  el.innerHTML = `<span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full ${type === "err" ? "bg-fo" : "bg-emerald-600"} text-white">${type === "err" ? "<b class='text-xs'>!</b>" : ic("check", "w-3.5 h-3.5")}</span><span>${esc(msg)}</span>`;
+  $("toasts").appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+function ask(msg, ok = "Confirmer") {
+  return new Promise((res) => {
+    $("modal-msg").textContent = msg; $("modal-ok").textContent = ok;
+    $("modal").classList.remove("hidden"); $("modal").classList.add("flex");
+    const close = (v) => { $("modal").classList.add("hidden"); $("modal").classList.remove("flex"); res(v); };
+    $("modal-ok").onclick = () => close(true); $("modal-no").onclick = () => close(false);
   });
+}
+const FR_ERR = {
+  "Invalid login credentials": "Email ou mot de passe incorrect.",
+  "Email not confirmed": "Email non confirmé. Cliquez sur le lien reçu par email, puis reconnectez-vous.",
+  "User already registered": "Un compte existe déjà avec cet email. Connectez-vous.",
+};
+const errMsg = (e) => FR_ERR[e?.message] || e?.message || String(e);
 
-  $("f-login").onsubmit = async (e) => {
-    e.preventDefault();
-    const { error } = await sb.auth.signInWithPassword({ email: $("login-email").value, password: $("login-password").value });
-    if (error) alert("Connexion refusée : " + error.message);
-  };
+/* ================= ÉTAT ================= */
+const S = {
+  profil: null, docs: [], view: "home", adminTab: "demandes",
+  cats: new Set(), q: "", members: [], sel: new Set(), memberQ: "",
+  files: [], queue: [], editing: null, busy: false,
+};
+let loadedFor = null, authMode = "login";
+const pending = () => S.members.filter((m) => m.role === "invite" && m.requested_adherent);
+const isAdmin = () => S.profil?.role === "admin";
+const allCats = () => [...new Set(S.docs.map((d) => d.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "fr"));
 
-  $("f-reg").onsubmit = async (e) => {
-    e.preventDefault();
-    const { data, error } = await sb.auth.signUp({
-      email: $("reg-email").value, password: $("reg-password").value,
-      options: { data: { full_name: $("reg-name").value } },
-    });
-    if (error) return alert("Inscription refusée : " + error.message);
-    if (!data.session) alert("Compte créé. Confirme ton email (vérifie aussi les spams), puis connecte-toi.");
-  };
+/* Récemment consultés : stockés sur l'appareil uniquement */
+const recentKey = () => `fo_recent_${S.profil?.id}`;
+const getRecent = () => { try { return JSON.parse(localStorage.getItem(recentKey()) || "[]"); } catch { return []; } };
+const pushRecent = (id) => { try { localStorage.setItem(recentKey(), JSON.stringify([id, ...getRecent().filter((x) => x !== id)].slice(0, 6))); } catch {} };
 
-  async function charger(session) {
-    const { data: p, error } = await sb.from("profiles").select("*").eq("id", session.user.id).single();
-    if (error || !p) { alert("Profil introuvable : " + (error?.message || "trigger handle_new_user absent ?")); return; }
-    profil = p;
-    $("role-badge").textContent = "Espace " + p.role; vis("role-badge", true, "inline-block");
-    const inv = p.role === "invite";
-    vis("block-invite", inv); vis("block-search", !inv); vis("n-admin", p.role === "admin");
-    const b = $("btn-req");
-    b.disabled = !!p.requested_adherent;
-    if (p.requested_adherent) b.textContent = "⏳ En attente de validation...";
-    const { data: d } = await sb.from("documents").select("*").order("title");
-    docs = d || [];
-    afficherDocs();
-    if (p.role === "admin") await chargerAttente();
-    onglet("docs"); screen("app");
-  }
+/* Mots-clés les plus fréquents : raccourcis de recherche */
+function topKeywords(n = 8) {
+  const c = new Map();
+  S.docs.forEach((d) => (d.keywords || []).forEach((k) => { const key = k.trim().toLowerCase(); if (key) c.set(key, (c.get(key) || 0) + 1); }));
+  return [...c.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "fr")).slice(0, n).map(([k]) => k);
+}
 
-  $("btn-req").onclick = async () => {
-    const { error } = await sb.rpc("request_adherent");
-    if (error) return alert("Erreur : " + error.message);
-    profil.requested_adherent = true; $("btn-req").disabled = true; $("btn-req").textContent = "⏳ En attente de validation...";
-  };
+/* ================= AUTHENTIFICATION ================= */
+function setAuthMode(m) {
+  authMode = m;
+  const on = "bg-white text-fo shadow-sm", off = "text-ink-soft";
+  $("m-login").className = `rounded-xl py-3 ${m === "login" ? on : off}`;
+  $("m-signup").className = `rounded-xl py-3 ${m === "signup" ? on : off}`;
+  $("f-login").classList.toggle("hidden", m !== "login");
+  $("f-signup").classList.toggle("hidden", m !== "signup");
+}
+function showAuth() { $("app").classList.add("hidden"); $("auth").classList.remove("hidden"); setAuthMode(authMode); }
 
-  // --- Documents ---
-  function afficherDocs() {
-    const t = norm($("search-input").value).split(/\s+/).filter(Boolean), c = $("docs-list");
-    c.innerHTML = "";
-    docs.filter((d) => { const h = norm([d.title, d.reference, d.description, ...(d.keywords || [])].join(" ")); return t.every((x) => h.includes(x)); })
-      .forEach((d) => {
-        const div = document.createElement("div");
-        div.className = "bg-white p-5 rounded-xl border-l-4 border-[#C8001E] shadow-sm";
-        div.innerHTML = `<div class="flex justify-between items-start mb-1"><h4 class="font-bold text-base">${esc(d.title)}</h4><span class="text-[10px] font-bold px-2 py-0.5 rounded-full border">${d.is_public ? "🔓 Public" : "🛡️ Adhérent"}</span></div>
-          <p class="text-xs text-gray-400 italic mb-2">Réf : ${esc(d.reference)}</p>` : ""}<p class="text-sm text-gray-600 mb-4">${esc(d.description)}</p>
-          <button class="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs">👁️ Consulter</button>`;
-        div.querySelector("button").onclick = () => ouvrir(d);
-        c.appendChild(div);
-      });
-    if (!c.children.length) c.innerHTML = '<p class="text-sm text-gray-400 text-center py-6">Aucun document.</p>';
-  }
-  $("search-input").oninput = afficherDocs;
+async function withBusy(btn, label, fn) {
+  const old = btn.innerHTML; btn.disabled = true;
+  btn.innerHTML = `<span class="inline-flex items-center gap-2">${spinner("w-5 h-5")} ${label}</span>`;
+  try { await fn(); } finally { btn.disabled = false; btn.innerHTML = old; }
+}
+$("f-login").onsubmit = (e) => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  withBusy(e.target.querySelector("button"), "Connexion…", async () => {
+    const { error } = await sb.auth.signInWithPassword({ email: f.get("email"), password: f.get("password") });
+    if (error) toast(errMsg(error), "err");
+  });
+};
+$("f-signup").onsubmit = (e) => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  withBusy(e.target.querySelector("button"), "Création…", async () => {
+    const { data, error } = await sb.auth.signUp({ email: f.get("email"), password: f.get("password"), options: { data: { full_name: f.get("name") } } });
+    if (error) return toast(errMsg(error), "err");
+    if (!data.session) { toast("Compte créé. Confirmez votre email (pensez aux courriers indésirables), puis connectez-vous."); setAuthMode("login"); }
+  });
+};
 
-  // --- Lecteur PDF en canvas (pas de barre native, pas de téléchargement) ---
-  const bloque = (e) => e.preventDefault();
-  const touches = (e) => { if ((e.ctrlKey || e.metaKey) && "psu".includes(e.key.toLowerCase())) e.preventDefault(); };
-  let ferme = false;
-  async function ouvrir(d) {
-    ferme = false; vis("viewer", true, "flex"); $("v-title").textContent = d.title;
-    $("v-msg").textContent = "Chargement…"; $("v-box").innerHTML = "";
-    addEventListener("contextmenu", bloque); addEventListener("keydown", touches);
+sb.auth.onAuthStateChange((_ev, session) => {
+  if (!session) { S.profil = null; loadedFor = null; showAuth(); return; }
+  if (loadedFor === session.user.id) return;
+  loadedFor = session.user.id;
+  setTimeout(() => boot(session), 0); // évite le blocage du callback Supabase
+});
+
+async function boot(session) {
+  const { data: p, error } = await sb.from("profiles").select("*").eq("id", session.user.id).single();
+  if (error || !p) return toast("Profil introuvable : " + (error?.message || "contactez l'administrateur."), "err");
+  S.profil = p; S.view = "home";
+  await loadDocs();
+  if (isAdmin()) await loadAdmin();
+  $("auth").classList.add("hidden"); $("app").classList.remove("hidden");
+  render();
+}
+
+/* ================= DONNÉES ================= */
+async function loadDocs() {
+  const { data, error } = await sb.from("documents").select("*").order("created_at", { ascending: false });
+  if (error) toast(errMsg(error), "err");
+  S.docs = data || [];
+}
+async function loadAdmin() {
+  const [m, f] = await Promise.all([
+    sb.from("profiles").select("id,email,full_name,role,requested_adherent,requested_at,created_at").order("created_at", { ascending: false }),
+    sb.storage.from(BUCKET).list("", { limit: 1000, sortBy: { column: "name", order: "asc" } }),
+  ]);
+  S.members = m.data || [];
+  S.files = (f.data || []).filter((o) => o.id && !o.name.startsWith(".")).map((o) => o.name);
+  [...S.sel].forEach((id) => { if (!pending().some((u) => u.id === id)) S.sel.delete(id); });
+}
+
+/* ================= RENDU ================= */
+function render() {
+  renderNav();
+  const v = { home: vHome, library: vLibrary, admin: vAdmin, profile: vProfile }[S.view] || vHome;
+  $("view").innerHTML = v();
+  if (S.view === "library") renderLibList();
+  if (S.view === "admin") renderAdmin();
+  window.scrollTo(0, 0);
+}
+function renderNav() {
+  const items = [["home", "Accueil", "home"], ["library", "Textes", "book"]];
+  if (isAdmin()) items.push(["admin", "Gestion", "shield"]);
+  items.push(["profile", "Profil", "user"]);
+  const n = pending().length;
+  $("nav").innerHTML = items.map(([id, label, icn]) => {
+    const on = S.view === id;
+    return `<button data-act="go" data-v="${id}" aria-current="${on ? "page" : "false"}" class="relative flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-2 text-[12px] font-semibold transition ${on ? "bg-white text-ink" : "text-white/60 hover:text-white"}">
+      ${ic(icn, "w-6 h-6")}${label}
+      ${id === "admin" && n ? `<span class="absolute right-[22%] top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-fo px-1 text-[11px] text-white">${n}</span>` : ""}
+    </button>`;
+  }).join("");
+}
+
+/* En-tête rouge des pages intérieures */
+const pageHead = (t, sub = "") => `
+  <header class="banner px-5 pb-8 pt-8 text-white" style="padding-top:max(32px,env(safe-area-inset-top))">
+    <div class="mx-auto max-w-2xl"><h1 class="shout text-[44px]">${t}</h1>${sub ? `<p class="mt-2 text-[16px] text-white/85">${sub}</p>` : ""}</div>
+  </header>`;
+const wrap = (html, cls = "") => `<div class="mx-auto max-w-2xl px-4 ${cls}">${html}</div>`;
+const sectionTitle = (t, extra = "") => `<div class="mb-3 mt-9 flex items-end justify-between gap-3"><h2 class="font-display text-[26px] font-bold leading-none">${t}</h2>${extra}</div>`;
+const empty = (t, sub = "") => `<div class="rounded-[22px] border-2 border-dashed border-line px-6 py-10 text-center"><p class="font-semibold">${t}</p>${sub ? `<p class="mt-1 text-sm text-ink-soft">${sub}</p>` : ""}</div>`;
+
+/* Carte document : une chemise de dossier, la tranche colorée indique le rayon */
+function docCard(d, compact = false) {
+  const col = catColor(d.category);
+  return `<button data-act="open" data-id="${d.id}" class="group relative w-full overflow-hidden rounded-[18px] bg-white py-4 pl-6 pr-4 text-left shadow-[0_1px_0_#DCE0E6,0_6px_18px_-10px_rgba(28,36,48,.25)] transition hover:-translate-y-0.5 hover:shadow-[0_1px_0_#DCE0E6,0_14px_28px_-12px_rgba(28,36,48,.35)] active:translate-y-0">
+    <span class="spine" style="background:${col}"></span>
+    <span class="flex items-start gap-3">
+      <span class="min-w-0 flex-1">
+        ${d.category ? `<span class="mb-1 inline-block text-[13px] font-semibold" style="color:${col}">${esc(d.category)}</span>` : ""}
+        <span class="block text-[18px] font-semibold leading-snug">${esc(d.title)}</span>
+        ${d.reference ? `<span class="mt-1.5 inline-flex items-center gap-1.5 rounded-md border border-fo/30 px-2 py-0.5 text-[13px] font-semibold text-fo">§ ${esc(d.reference)}</span>` : ""}
+        ${!compact && d.description ? `<span class="mt-2 block text-[15px] leading-relaxed text-ink-soft">${esc(d.description)}</span>` : ""}
+        ${!compact && (d.keywords || []).length ? `<span class="mt-3 flex flex-wrap gap-1.5">${d.keywords.slice(0, 5).map((k) => `<span class="rounded-full bg-paper px-2.5 py-1 text-[13px] text-ink-soft">${esc(k)}</span>`).join("")}</span>` : ""}
+      </span>
+      <span class="mt-1 flex shrink-0 flex-col items-end gap-2">
+        ${d.is_public ? `<span class="rounded-full bg-sky-50 px-2.5 py-1 text-[12px] font-semibold text-sky-700 ring-1 ring-sky-200">Découverte</span>` : ""}
+        <span class="grid h-9 w-9 place-items-center rounded-full bg-paper text-ink-soft transition group-hover:bg-fo group-hover:text-white">${ic("chevron", "w-4 h-4")}</span>
+      </span>
+    </span>
+  </button>`;
+}
+
+/* Statut invité */
+function inviteCard() {
+  const p = S.profil;
+  if (p.role !== "invite") return "";
+  if (p.requested_adherent) return `
+    <div class="mt-5 flex items-start gap-4 rounded-[22px] bg-amber-50 p-5 ring-1 ring-amber-200">
+      <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-700">${ic("clock", "w-6 h-6")}</span>
+      <span><b class="block text-[17px] text-amber-900">Demande en cours d'examen</b><span class="text-[15px] text-amber-800">La région valide votre adhésion. Vous aurez accès à tous les textes dès validation.</span></span>
+    </div>`;
+  return `
+    <div class="mt-5 rounded-[22px] bg-ink p-5 text-white">
+      <div class="flex items-start gap-4">
+        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white/10">${ic("lock", "w-6 h-6")}</span>
+        <span><b class="block text-[17px]">Accédez à tous les textes</b><span class="text-[15px] text-white/75">Les accords et fiches juridiques sont réservés aux adhérents FO. Un document de découverte reste ouvert.</span></span>
+      </div>
+      <button data-act="request" class="mt-5 w-full rounded-2xl bg-fo py-4 text-[17px] font-bold transition hover:bg-[#E0072A]">Demander mon accès adhérent</button>
+    </div>`;
+}
+
+/* ================= ACCUEIL ================= */
+function vHome() {
+  const p = S.profil, first = (p.full_name || "").trim().split(/\s+/)[0];
+  const cats = allCats(), kws = topKeywords(), np = pending().length;
+  const recent = getRecent().map((id) => S.docs.find((d) => d.id === id)).filter(Boolean).slice(0, 3);
+  const newest = S.docs.slice(0, 3);
+  const full = p.role !== "invite";
+
+  return `
+  <section class="banner relative overflow-hidden px-5 pb-10 text-white" style="padding-top:max(28px,env(safe-area-inset-top))">
+    <div class="mx-auto max-w-2xl">
+      <div class="flex items-center gap-3">
+        <span class="grid h-11 w-11 place-items-center rounded-xl bg-white font-display text-xl font-extrabold text-fo">FO</span>
+        <span class="min-w-0 flex-1 leading-tight"><b class="block truncate">Bonjour${first ? " " + esc(first) : ""}</b><span class="text-sm text-white/80">${ROLES[p.role]}, Nouvelle-Aquitaine</span></span>
+      </div>
+      <h1 class="shout enter mt-8 text-[50px] sm:text-[60px]">Quel texte<br>cherchez-vous&nbsp;?</h1>
+      ${full ? `
+      <button data-act="go" data-v="library" data-focus="1" class="mt-6 flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-4 text-left text-ink shadow-[0_14px_30px_-12px_rgba(0,0,0,.45)]">
+        ${ic("search", "w-6 h-6 text-fo")}<span class="text-[17px] text-ink-faint">Congés, délégation, L2315-7…</span>
+      </button>
+      ${kws.length ? `<div class="no-sb -mx-5 mt-4 flex gap-2 overflow-x-auto px-5">${kws.map((k) => `<button data-act="kw" data-k="${esc(k)}" class="shrink-0 rounded-full border border-white/40 bg-white/10 px-4 py-2 text-[15px] font-medium backdrop-blur transition hover:bg-white hover:text-fo">${esc(k)}</button>`).join("")}</div>` : ""}`
+      : `<p class="mt-4 max-w-sm text-[17px] text-white/90">Consultez le document de découverte ci-dessous, puis demandez votre accès adhérent.</p>`}
+    </div>
+  </section>
+
+  ${wrap(`
+    ${inviteCard()}
+    ${isAdmin() && np ? `
+      <button data-act="go" data-v="admin" data-t="demandes" class="mt-5 flex w-full items-center gap-4 rounded-[22px] bg-white p-5 text-left ring-2 ring-fo">
+        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-fo font-display text-2xl font-bold text-white">${np}</span>
+        <span class="flex-1"><b class="block text-[17px]">${np > 1 ? "Demandes d'adhésion" : "Demande d'adhésion"} en attente</b><span class="text-[15px] text-ink-soft">Valider en un geste</span></span>
+        ${ic("chevron", "w-5 h-5 text-ink-faint")}
+      </button>` : ""}
+
+    ${full && cats.length ? `
+      ${sectionTitle("Les rayons", `<span class="text-[15px] text-ink-soft">${plural(S.docs.length, "texte")}</span>`)}
+      <div class="no-sb -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 pt-3">
+        ${cats.map((c) => {
+          const n = S.docs.filter((d) => d.category === c).length, col = catColor(c);
+          return `<button data-act="shelf" data-c="${esc(c)}" class="relative w-[150px] shrink-0 text-left">
+            <span class="tab absolute -top-3 left-0 h-4 w-full rounded-t-lg" style="background:${col}"></span>
+            <span class="relative block h-[118px] rounded-b-2xl rounded-tr-2xl p-4 text-white shadow-[0_10px_22px_-12px_rgba(28,36,48,.6)]" style="background:${col}">
+              <span class="block font-display text-[23px] font-bold leading-[1.02]">${esc(c)}</span>
+              <span class="absolute bottom-3 left-4 text-sm text-white/85">${plural(n, "texte")}</span>
+            </span>
+          </button>`;
+        }).join("")}
+      </div>` : ""}
+
+    ${recent.length ? `${sectionTitle("Repris récemment")}<div class="space-y-3">${recent.map((d) => docCard(d, true)).join("")}</div>` : ""}
+
+    ${sectionTitle(full ? "Derniers ajouts" : "Document de découverte", full && S.docs.length > 3 ? `<button data-act="go" data-v="library" class="text-[15px] font-semibold text-fo">Tous les textes</button>` : "")}
+    <div class="space-y-3">${(full ? newest : S.docs).map((d) => docCard(d)).join("") || empty("Aucun texte pour l'instant.", "Les documents publiés par la région apparaîtront ici.")}</div>
+  `)}`;
+}
+
+/* ================= BIBLIOTHÈQUE ================= */
+function vLibrary() {
+  if (S.profil.role === "invite") return pageHead("Les textes", "Accès découverte") + wrap(`${inviteCard()}${sectionTitle("Ouvert à tous")}<div id="lib-list"></div>`);
+  const cats = allCats(), hasNone = S.docs.some((d) => !d.category);
+  const chips = [...cats, ...(hasNone && cats.length ? [NONE] : [])];
+  return `
+  ${pageHead("Les textes", `${plural(S.docs.length, "document")} à votre disposition`)}
+  <div class="sticky top-0 z-20 border-b border-line bg-paper/95 backdrop-blur">
+    <div class="mx-auto max-w-2xl px-4 pb-3 pt-3">
+      <label class="flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-sm ring-2 ring-transparent transition focus-within:ring-fo">
+        ${ic("search", "w-6 h-6 text-fo")}
+        <input id="q" type="search" value="${esc(S.q)}" placeholder="Mot-clé, titre ou article (L2315-7)" class="min-w-0 flex-1 bg-transparent text-[17px] outline-none placeholder:text-ink-faint" autocomplete="off" enterkeyhint="search">
+        ${S.q ? `<button data-act="clearq" class="grid h-8 w-8 place-items-center rounded-full bg-paper text-ink-soft" aria-label="Effacer la recherche">${ic("x", "w-4 h-4")}</button>` : ""}
+      </label>
+      ${chips.length ? `<div class="no-sb -mx-4 mt-3 flex gap-2 overflow-x-auto px-4">
+        ${chips.map((c) => {
+          const col = c === NONE ? "#8A93A3" : catColor(c), on = S.cats.has(c);
+          return `<label class="flex shrink-0 cursor-pointer select-none items-center gap-2 rounded-full border-2 px-3.5 py-2 text-[15px] font-semibold transition" style="${on ? `background:${col};border-color:${col};color:#fff` : `background:#fff;border-color:#DCE0E6`}">
+            <input type="checkbox" class="sr-only" data-cat="${esc(c)}" ${on ? "checked" : ""}>
+            <span class="grid h-5 w-5 place-items-center rounded-md border-2" style="border-color:${on ? "#fff" : col};${on ? "background:#fff;color:" + col : ""}">${on ? ic("check", "w-3.5 h-3.5") : ""}</span>
+            ${c === NONE ? "Sans rayon" : esc(c)}</label>`;
+        }).join("")}
+        ${S.cats.size ? `<button data-act="clearcats" class="shrink-0 px-2 text-[15px] font-semibold text-fo">Tout afficher</button>` : ""}
+      </div>` : ""}
+    </div>
+  </div>
+  ${wrap(`<div id="lib-list" class="pt-4"></div>`)}`;
+}
+function renderLibList() {
+  const t = norm(S.q).split(/\s+/).filter(Boolean);
+  const list = S.docs.filter((d) => {
+    if (S.cats.size && !S.cats.has(d.category || NONE)) return false;
+    const h = norm([d.title, d.reference, d.description, d.category, ...(d.keywords || [])].join(" "));
+    return t.every((x) => h.includes(x));
+  });
+  const head = S.profil.role === "invite" ? "" : `<p class="mb-3 text-[15px] text-ink-soft" aria-live="polite">${list.length ? plural(list.length, "texte trouvé", "textes trouvés") : ""}</p>`;
+  $("lib-list").innerHTML = head + `<div class="space-y-3">${list.map((d) => docCard(d)).join("") ||
+    empty("Aucun texte ne correspond.", S.q || S.cats.size ? "Essayez un autre mot, ou retirez un filtre." : "")}</div>`;
+}
+
+/* ================= PROFIL ================= */
+function vProfile() {
+  const p = S.profil;
+  return `
+  ${pageHead("Mon profil")}
+  ${wrap(`
+    <div class="-mt-6 rounded-[22px] bg-white p-6 shadow-[0_10px_30px_-14px_rgba(28,36,48,.35)]">
+      <div class="flex items-center gap-4">
+        <span class="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-fo font-display text-2xl font-bold text-white">${esc(initials(p.full_name, p.email))}</span>
+        <span class="min-w-0"><b class="block truncate text-[19px]">${esc(p.full_name || "Sans nom")}</b><span class="block truncate text-[15px] text-ink-soft">${esc(p.email)}</span></span>
+      </div>
+      <dl class="mt-6 grid grid-cols-2 gap-3 text-[15px]">
+        <div class="rounded-2xl bg-paper p-4"><dt class="text-ink-soft">Statut</dt><dd class="mt-0.5 font-semibold">${ROLES[p.role]}</dd></div>
+        <div class="rounded-2xl bg-paper p-4"><dt class="text-ink-soft">Inscrit depuis</dt><dd class="mt-0.5 font-semibold">${fmtDate(p.created_at)}</dd></div>
+      </dl>
+    </div>
+    ${inviteCard()}
+    <div class="mt-5 rounded-[22px] bg-white p-5 text-[15px] leading-relaxed text-ink-soft">
+      <b class="block text-ink">Documents protégés</b>
+      Les textes se consultent dans l'application uniquement : ils ne peuvent être ni téléchargés, ni imprimés.
+    </div>
+    <button data-act="logout" class="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-4 text-[17px] font-semibold text-fo ring-1 ring-line">${ic("logout", "w-5 h-5")} Se déconnecter</button>
+  `)}`;
+}
+
+/* ================= GESTION ADMIN ================= */
+function vAdmin() {
+  const tabs = [["demandes", "Demandes", pending().length], ["membres", "Membres", 0], ["documents", "Documents", 0]];
+  return `
+  ${pageHead("Gestion", "Adhésions, membres et publication des textes")}
+  <div class="sticky top-0 z-20 border-b border-line bg-paper/95 backdrop-blur">
+    <div class="mx-auto grid max-w-2xl grid-cols-3 gap-1 px-4 py-3">
+      ${tabs.map(([id, l, n]) => `<button data-act="atab" data-t="${id}" class="relative rounded-2xl py-3 text-[15px] font-semibold transition ${S.adminTab === id ? "bg-ink text-white" : "text-ink-soft hover:bg-white"}">${l}${n ? ` <span class="ml-1 rounded-full bg-fo px-1.5 py-0.5 text-[12px] text-white">${n}</span>` : ""}</button>`).join("")}
+    </div>
+  </div>
+  ${wrap(`<div id="admin-body" class="pt-5"></div>`)}`;
+}
+function renderAdmin() {
+  const b = $("admin-body"); if (!b) return;
+  b.innerHTML = { demandes: aDemandes, membres: aMembres, documents: aDocuments }[S.adminTab]();
+}
+const avatar = (u, cls = "bg-paper text-ink-soft") => `<span class="grid h-11 w-11 shrink-0 place-items-center rounded-full ${cls} text-[15px] font-bold">${esc(initials(u.full_name, u.email))}</span>`;
+
+function aDemandes() {
+  const list = pending();
+  if (!list.length) return empty("Aucune demande en attente.", "Les nouvelles demandes d'adhésion apparaîtront ici.");
+  const all = list.every((u) => S.sel.has(u.id)), n = S.sel.size;
+  return `
+  <div class="mb-3 flex items-center justify-between">
+    <label class="inline-flex cursor-pointer items-center gap-3 text-[15px] font-semibold"><input type="checkbox" class="cb" data-selall ${all ? "checked" : ""}> Tout sélectionner</label>
+    <span class="text-[15px] text-ink-soft">${n ? plural(n, "sélectionnée") : ""}</span>
+  </div>
+  <ul class="space-y-2">${list.map((u) => `<li>
+    <label class="flex cursor-pointer items-center gap-3 rounded-[18px] bg-white p-4 ring-2 transition ${S.sel.has(u.id) ? "ring-fo" : "ring-transparent"}">
+      <input type="checkbox" class="cb" data-sel="${u.id}" ${S.sel.has(u.id) ? "checked" : ""}>
+      ${avatar(u)}
+      <span class="min-w-0 flex-1"><b class="block truncate text-[16px]">${esc(u.full_name || "Sans nom")}</b><span class="block truncate text-[14px] text-ink-soft">${esc(u.email)}</span></span>
+      <span class="shrink-0 text-[13px] text-ink-faint">${u.requested_at ? new Date(u.requested_at).toLocaleDateString("fr-FR") : ""}</span>
+    </label></li>`).join("")}</ul>
+  <div class="sticky bottom-28 z-10 mt-5 grid grid-cols-3 gap-2">
+    <button data-act="reject" ${n ? "" : "disabled"} class="rounded-2xl bg-white py-4 font-semibold text-ink shadow-lg ring-1 ring-line disabled:opacity-40">Refuser</button>
+    <button data-act="approve" ${n ? "" : "disabled"} class="col-span-2 flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-[17px] font-bold text-white shadow-lg disabled:opacity-40">${ic("check", "w-5 h-5")} Valider${n ? " " + n : ""}</button>
+  </div>`;
+}
+
+function aMembres() {
+  const q = norm(S.memberQ);
+  const list = S.members.filter((m) => !q || norm(`${m.full_name} ${m.email}`).includes(q));
+  const c = (r) => S.members.filter((m) => m.role === r).length;
+  return `
+  <div class="mb-4 grid grid-cols-3 gap-2">
+    ${[["adherent", "Adhérents"], ["invite", "Invités"], ["admin", "Admins"]].map(([r, l]) => `<div class="rounded-[18px] bg-white p-4"><b class="block font-display text-[32px] leading-none">${c(r)}</b><span class="text-[14px] text-ink-soft">${l}</span></div>`).join("")}
+  </div>
+  <label class="flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 ring-2 ring-transparent focus-within:ring-fo">${ic("search", "w-5 h-5 text-ink-faint")}<input id="mq" type="search" value="${esc(S.memberQ)}" placeholder="Rechercher un nom ou un email" class="min-w-0 flex-1 bg-transparent text-[16px] outline-none"></label>
+  <ul class="mt-3 space-y-2">${list.map((m) => `<li class="flex items-center gap-3 rounded-[18px] bg-white p-3.5">
+    ${avatar(m, m.role === "admin" ? "bg-fo text-white" : m.role === "adherent" ? "bg-emerald-100 text-emerald-800" : "bg-paper text-ink-soft")}
+    <span class="min-w-0 flex-1"><b class="block truncate text-[16px]">${esc(m.full_name || "Sans nom")}</b><span class="block truncate text-[14px] text-ink-soft">${esc(m.email)}</span></span>
+    ${m.role === "admin" ? `<span class="rounded-full bg-fo px-3 py-1.5 text-[13px] font-semibold text-white">Admin</span>`
+      : `<select data-role="${m.id}" aria-label="Statut de ${esc(m.full_name || m.email)}" class="rounded-xl border-2 border-line bg-white px-2 py-2 text-[15px] font-medium outline-none focus:border-fo">
+          <option value="invite" ${m.role === "invite" ? "selected" : ""}>Invité</option>
+          <option value="adherent" ${m.role === "adherent" ? "selected" : ""}>Adhérent</option></select>`}
+  </li>`).join("") || empty("Aucun membre trouvé.")}</ul>`;
+}
+
+const field = (label, html) => `<label class="block"><span class="mb-1.5 block text-[14px] font-semibold text-ink-soft">${label}</span>${html}</label>`;
+const inp = "w-full rounded-xl border-2 border-line bg-white px-3 py-2.5 text-[16px] outline-none transition focus:border-fo";
+
+function aDocuments() {
+  const declared = new Set(S.docs.map((d) => d.storage_path));
+  const orphans = S.files.filter((f) => !declared.has(f) && !S.queue.some((q) => q.existing === f));
+  return `
+  <div id="dropzone" data-act="pick" role="button" tabindex="0" class="cursor-pointer rounded-[22px] border-2 border-dashed border-ink-faint/50 bg-white px-6 py-10 text-center transition hover:border-fo">
+    <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-fo text-white">${ic("upload", "w-8 h-8")}</span>
+    <b class="mt-4 block font-display text-[26px] leading-tight">Déposez vos PDF ici</b>
+    <span class="mt-1 block text-[15px] text-ink-soft">ou touchez pour les choisir. ${MAX_MB} Mo maximum par fichier.</span>
+  </div>
+  <datalist id="catlist">${allCats().map((c) => `<option value="${esc(c)}">`).join("")}</datalist>
+
+  ${S.queue.length ? `${sectionTitle(`À publier (${S.queue.length})`)}
+  <div class="space-y-3">${S.queue.map(queueCard).join("")}</div>
+  <button data-act="publish" ${S.busy ? "disabled" : ""} class="sticky bottom-28 z-10 mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-fo py-4 text-[17px] font-bold text-white shadow-xl disabled:opacity-70">${S.busy ? spinner("w-5 h-5") + " Publication en cours…" : ic("upload", "w-5 h-5") + ` Publier ${S.queue.length > 1 ? "les " + S.queue.length + " documents" : "le document"}`}</button>` : ""}
+
+  ${orphans.length ? `${sectionTitle("Fichiers à déclarer")}
+  <p class="-mt-1 mb-3 text-[15px] text-ink-soft">Ces PDF sont dans le stockage mais invisibles dans l'application.</p>
+  <ul class="space-y-2">${orphans.map((f) => `<li class="flex items-center gap-3 rounded-[18px] bg-amber-50 p-3.5 ring-1 ring-amber-200">
+    <span class="text-amber-700">${ic("doc", "w-6 h-6")}</span><span class="min-w-0 flex-1 truncate text-[15px]">${esc(f)}</span>
+    <button data-act="declare" data-f="${esc(f)}" class="shrink-0 rounded-xl bg-white px-3.5 py-2 text-[15px] font-semibold text-amber-800 ring-1 ring-amber-300">Déclarer</button></li>`).join("")}</ul>` : ""}
+
+  ${sectionTitle(`En ligne (${S.docs.length})`)}
+  <ul class="space-y-2">${S.docs.map(docRow).join("") || empty("Aucun texte en ligne.", "Déposez un premier PDF ci-dessus.")}</ul>`;
+}
+
+function queueCard(q, i) {
+  const st = { busy: `<span class="flex items-center gap-1.5 text-[14px] text-ink-soft">${spinner()} Envoi</span>`, err: `<span class="text-[14px] font-semibold text-fo">Échec</span>` }[q.status] || "";
+  return `<div class="rounded-[22px] bg-white p-4 ring-2 ${q.status === "err" ? "ring-fo" : "ring-transparent"}">
+    <div class="mb-4 flex items-center gap-3">
+      <span class="grid h-11 w-11 place-items-center rounded-xl bg-fo-soft text-fo">${ic("doc", "w-6 h-6")}</span>
+      <span class="min-w-0 flex-1"><b class="block truncate text-[15px]">${esc(q.existing || q.file.name)}</b><span class="text-[14px] text-ink-soft">${q.existing ? "Déjà dans le stockage" : fmtMB(q.file.size)}</span></span>
+      ${st}<button data-act="unqueue" data-i="${i}" class="grid h-10 w-10 place-items-center rounded-full text-ink-faint hover:bg-paper hover:text-fo" aria-label="Retirer ce fichier">${ic("x", "w-5 h-5")}</button>
+    </div>
+    ${q.err ? `<p class="mb-3 rounded-xl bg-fo-soft px-3 py-2 text-[14px] text-fo-deep">${esc(q.err)}</p>` : ""}
+    <div class="grid gap-3 sm:grid-cols-2">
+      ${field("Titre affiché *", `<input data-q="${i}" data-f="title" value="${esc(q.title)}" class="${inp}">`)}
+      ${field("Rayon", `<input data-q="${i}" data-f="category" value="${esc(q.category)}" list="catlist" placeholder="Accords, Conventions…" class="${inp}">`)}
+      ${field("Référence juridique", `<input data-q="${i}" data-f="reference" value="${esc(q.reference)}" placeholder="Art. L2315-7" class="${inp}">`)}
+      ${field("Mots-clés, séparés par des virgules", `<input data-q="${i}" data-f="keywords" value="${esc(q.keywords)}" placeholder="congés, formation" class="${inp}">`)}
+      <div class="sm:col-span-2">${field("Description courte", `<textarea data-q="${i}" data-f="description" rows="2" class="${inp}">${esc(q.description)}</textarea>`)}</div>
+    </div>
+    <label class="mt-4 flex cursor-pointer items-center gap-3 text-[15px]"><input type="checkbox" class="cb" data-q="${i}" data-f="is_public" ${q.is_public ? "checked" : ""}> Document de découverte (visible par les invités)</label>
+  </div>`;
+}
+
+function docRow(d) {
+  if (S.editing === d.id) return `<li class="rounded-[22px] bg-white p-4 ring-2 ring-fo">
+    <div class="grid gap-3 sm:grid-cols-2">
+      ${field("Titre affiché *", `<input id="e-title" value="${esc(d.title)}" class="${inp}">`)}
+      ${field("Rayon", `<input id="e-category" value="${esc(d.category)}" list="catlist" class="${inp}">`)}
+      ${field("Référence juridique", `<input id="e-reference" value="${esc(d.reference)}" class="${inp}">`)}
+      ${field("Mots-clés", `<input id="e-keywords" value="${esc((d.keywords || []).join(", "))}" class="${inp}">`)}
+      <div class="sm:col-span-2">${field("Description courte", `<textarea id="e-description" rows="2" class="${inp}">${esc(d.description)}</textarea>`)}</div>
+    </div>
+    <p class="mt-2 truncate text-[13px] text-ink-faint">Fichier : ${esc(d.storage_path)}</p>
+    <div class="mt-4 grid grid-cols-2 gap-2">
+      <button data-act="cancelEdit" class="rounded-2xl bg-paper py-3 font-semibold">Annuler</button>
+      <button data-act="saveEdit" data-id="${d.id}" class="rounded-2xl bg-fo py-3 font-semibold text-white">Enregistrer</button>
+    </div></li>`;
+  const missing = !S.files.includes(d.storage_path), col = catColor(d.category);
+  return `<li class="relative overflow-hidden rounded-[18px] bg-white py-3 pl-5 pr-3 ${missing ? "ring-2 ring-fo" : ""}">
+    <span class="spine" style="background:${col}"></span>
+    <div class="flex items-center gap-2">
+      <span class="min-w-0 flex-1"><b class="block truncate text-[16px]">${esc(d.title)}</b>
+        <span class="block truncate text-[14px] ${missing ? "font-semibold text-fo" : "text-ink-soft"}">${missing ? "Fichier introuvable : supprimez cette fiche" : esc(d.category || "Sans rayon")}</span></span>
+      ${missing ? "" : `<button data-act="open" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-paper" aria-label="Consulter">${ic("eye", "w-5 h-5")}</button>`}
+      <button data-act="edit" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-paper" aria-label="Modifier">${ic("pencil", "w-5 h-5")}</button>
+      <button data-act="del" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-fo-soft hover:text-fo" aria-label="Supprimer">${ic("trash", "w-5 h-5")}</button>
+    </div>
+    <label class="mt-2 inline-flex cursor-pointer items-center gap-2.5 text-[14px] text-ink-soft"><input type="checkbox" class="cb !h-5 !w-5" data-pub="${d.id}" ${d.is_public ? "checked" : ""}> Document de découverte</label>
+  </li>`;
+}
+
+/* ================= PUBLICATION ================= */
+const cleanName = (n) => {
+  let s = n.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w.\- ]+/g, "-").replace(/\s+/g, " ").trim();
+  if (!/\.pdf$/i.test(s)) s += ".pdf";
+  return s;
+};
+const uniqueName = (n) => {
+  if (!S.files.includes(n)) return n;
+  const base = n.replace(/\.pdf$/i, ""); let i = 2;
+  while (S.files.includes(`${base}-${i}.pdf`)) i++;
+  return `${base}-${i}.pdf`;
+};
+const titleFrom = (n) => n.replace(/\.pdf$/i, "").replace(/_+/g, " ").replace(/\s+/g, " ").trim();
+const kwParse = (s) => [...new Set(String(s || "").split(",").map((k) => k.trim().toLowerCase()).filter(Boolean))];
+const blankItem = () => ({ title: "", category: "", reference: "", keywords: "", description: "", is_public: false, status: "idle", err: "" });
+
+function addFiles(list) {
+  let skipped = 0;
+  [...list].forEach((f) => {
+    if (!(f.type === "application/pdf" || /\.pdf$/i.test(f.name))) { skipped++; return; }
+    if (f.size > MAX_MB * 1048576) { toast(`« ${f.name} » dépasse ${MAX_MB} Mo. Compressez-le avant de le déposer.`, "err"); return; }
+    S.queue.push({ ...blankItem(), file: f, title: titleFrom(f.name) });
+  });
+  if (skipped) toast(`${plural(skipped, "fichier ignoré", "fichiers ignorés")} : seuls les PDF sont acceptés.`, "err");
+  S.adminTab = "documents"; renderAdmin();
+}
+async function setPublic(id, on) {
+  if (on) { const r = await sb.from("documents").update({ is_public: false }).eq("is_public", true).neq("id", id); if (r.error) return r.error; }
+  return (await sb.from("documents").update({ is_public: on }).eq("id", id)).error;
+}
+async function publish() {
+  if (S.queue.filter((q) => q.is_public).length > 1) return toast("Un seul document de découverte est possible.", "err");
+  S.busy = true; renderAdmin();
+  let ok = 0;
+  for (const q of S.queue) {
+    if (!q.title.trim()) { q.status = "err"; q.err = "Ajoutez un titre."; continue; }
+    q.status = "busy"; q.err = ""; renderAdmin();
+    let path = q.existing, uploaded = false;
     try {
-      const { data, error } = await sb.storage.from("documents").createSignedUrl(d.storage_path, 120);
-      if (error) throw error;
-      const pdf = await pdfjsLib.getDocument(data.signedUrl).promise, dpr = devicePixelRatio || 1;
-      for (let i = 1; i <= pdf.numPages && !ferme; i++) {
-        const p = await pdf.getPage(i), s = $("v-box").clientWidth / p.getViewport({ scale: 1 }).width, vp = p.getViewport({ scale: s * dpr });
-        const c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height; c.style.cssText = "width:100%;margin-bottom:8px;background:#fff";
-        $("v-box").appendChild(c); await p.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
-        if (i === 1) $("v-msg").textContent = "";
+      if (!path) {
+        path = uniqueName(cleanName(q.file.name));
+        const { error } = await sb.storage.from(BUCKET).upload(path, q.file, { contentType: "application/pdf", upsert: false });
+        if (error) throw error;
+        uploaded = true; S.files.push(path);
       }
-    } catch (e) { $("v-msg").textContent = "Document inaccessible : " + (e.message || e); }
+      const { data, error } = await sb.from("documents").insert({
+        title: q.title.trim(), category: q.category.trim() || null, reference: q.reference.trim() || null,
+        description: q.description.trim() || null, keywords: kwParse(q.keywords), storage_path: path, is_public: false,
+      }).select("id").single();
+      if (error) throw error;
+      if (q.is_public) { const e = await setPublic(data.id, true); if (e) throw e; }
+      q.status = "done"; ok++;
+    } catch (e) {
+      if (uploaded) { await sb.storage.from(BUCKET).remove([path]); S.files = S.files.filter((f) => f !== path); }
+      q.status = "err"; q.err = errMsg(e);
+    }
   }
-  $("v-close").onclick = () => { ferme = true; vis("viewer", false); $("v-box").innerHTML = ""; removeEventListener("contextmenu", bloque); removeEventListener("keydown", touches); };
+  S.queue = S.queue.filter((q) => q.status !== "done");
+  S.busy = false;
+  await loadDocs(); renderAdmin();
+  if (ok) toast(ok > 1 ? `${ok} documents publiés` : "Document publié");
+}
 
-  // --- Admin ---
-  async function chargerAttente() {
-    const { data: list } = await sb.from("profiles").select("id,email,full_name").eq("role", "invite").eq("requested_adherent", true);
-    const c = $("admin-list"); c.innerHTML = "";
-    if (!list?.length) { c.innerHTML = '<p class="text-xs text-gray-400 italic">Aucune demande.</p>'; return; }
-    list.forEach((u) => {
-      const div = document.createElement("div");
-      div.className = "flex items-center justify-between bg-gray-50 p-4 rounded-xl border text-xs gap-3";
-      div.innerHTML = `<div class="truncate"><p class="font-bold truncate">${esc(u.full_name || "Militant")}</p><p class="text-gray-400 truncate">${esc(u.email)}</p></div><button class="bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg shrink-0">Accepter</button>`;
-      div.querySelector("button").onclick = async () => {
-        const { error } = await sb.from("profiles").update({ role: "adherent", requested_adherent: false }).eq("id", u.id);
-        if (error) alert(error.message); else chargerAttente();
-      };
-      c.appendChild(div);
-    });
-  }
+/* ================= LECTEUR PDF : rendu page par page à l'écran ================= */
+const blockCtx = (e) => e.preventDefault();
+const blockKeys = (e) => { if ((e.ctrlKey || e.metaKey) && "psu".includes(e.key.toLowerCase())) e.preventDefault(); };
+const V = { tok: 0, pdf: null, zoom: 1, ratio: 1.414, obs: null, pageObs: null };
+const ZOOMS = [1, 1.35, 1.75, 2.25];
 
-  // --- Navigation ---
-  function onglet(id) {
-    const a = id === "admin" && profil?.role === "admin";
-    $("n-docs").className = "flex-1 py-4 text-xs font-bold " + (a ? "text-gray-400" : "text-[#C8001E]");
-    $("n-admin").className = "flex-1 py-4 text-xs font-bold " + (a ? "text-[#C8001E]" : "text-gray-400");
-    vis("docs-wrap", !a); vis("block-admin", a); vis("block-search", !a && profil?.role !== "invite");
-    if (a) chargerAttente();
+function layoutPages() {
+  V.obs?.disconnect(); V.pageObs?.disconnect();
+  const box = $("v-box"), avail = $("v-scroll").clientWidth - 24;
+  const w = Math.round(Math.min(avail, 900) * V.zoom);
+  box.style.width = w + "px"; box.innerHTML = "";
+  for (let i = 1; i <= V.pdf.numPages; i++) {
+    const el = document.createElement("div");
+    el.className = "page"; el.dataset.p = i;
+    el.style.width = w + "px"; el.style.height = Math.round(w * V.ratio) + "px";
+    box.appendChild(el);
   }
-  $("n-docs").onclick = () => onglet("docs");
-  $("n-admin").onclick = () => onglet("admin");
-  $("n-out").onclick = () => sb.auth.signOut();
-  function screen(t) { vis("auth-screen", t === "auth", "grid"); vis("main-screen", t === "app"); vis("app-nav", t === "app", "flex"); vis("role-badge", t === "app", "inline-block"); }
+  const tok = V.tok, root = $("v-scroll");
+  V.obs = new IntersectionObserver((ents) => ents.forEach((en) => {
+    const el = en.target;
+    if (en.isIntersecting && !el.dataset.r) renderPage(el, tok);
+    else if (!en.isIntersecting && el.dataset.r) { el.innerHTML = ""; delete el.dataset.r; }
+  }), { root, rootMargin: "1200px 0px" });
+  V.pageObs = new IntersectionObserver((ents) => ents.forEach((en) => {
+    if (en.isIntersecting) $("v-page").textContent = `Page ${en.target.dataset.p} sur ${V.pdf.numPages}`;
+  }), { root, threshold: 0.5 });
+  box.querySelectorAll(".page").forEach((el) => { V.obs.observe(el); V.pageObs.observe(el); });
+}
+async function renderPage(el, tok) {
+  el.dataset.r = "1";
+  try {
+    const p = await V.pdf.getPage(+el.dataset.p);
+    if (tok !== V.tok || !el.dataset.r) return;
+    const base = p.getViewport({ scale: 1 }), dpr = Math.min(devicePixelRatio || 1, 2);
+    const vp = p.getViewport({ scale: (el.clientWidth / base.width) * dpr });
+    const c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height;
+    el.style.height = Math.round(el.clientWidth * base.height / base.width) + "px";
+    await p.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
+    if (tok === V.tok && el.dataset.r) { el.innerHTML = ""; el.appendChild(c); }
+  } catch { delete el.dataset.r; }
+}
+async function openDoc(d) {
+  const tok = ++V.tok; V.zoom = 1;
+  pushRecent(d.id);
+  $("viewer").classList.remove("hidden"); $("viewer").classList.add("flex");
+  $("v-back").innerHTML = ic("back", "w-6 h-6");
+  $("v-title").textContent = d.title; $("v-sub").textContent = d.reference || d.category || "";
+  $("v-msg").innerHTML = `<span class="inline-flex items-center gap-2">${spinner("w-5 h-5")} Ouverture du document…</span>`;
+  $("v-box").innerHTML = ""; $("v-page").classList.add("hidden");
+  addEventListener("contextmenu", blockCtx); addEventListener("keydown", blockKeys);
+  try {
+    const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(d.storage_path, 300);
+    if (error) throw error;
+    const pdf = await pdfjsLib.getDocument(data.signedUrl).promise;
+    if (tok !== V.tok) return pdf.destroy();
+    V.pdf = pdf;
+    const v1 = (await pdf.getPage(1)).getViewport({ scale: 1 }); V.ratio = v1.height / v1.width;
+    $("v-sub").textContent = `${d.reference ? d.reference + ", " : ""}${plural(pdf.numPages, "page")}`;
+    $("v-msg").textContent = ""; $("v-page").classList.remove("hidden");
+    layoutPages();
+  } catch (e) { if (tok === V.tok) $("v-msg").textContent = "Impossible d'ouvrir ce document : " + errMsg(e); }
+}
+function zoom(dir) {
+  if (!V.pdf) return;
+  const i = Math.max(0, Math.min(ZOOMS.length - 1, ZOOMS.indexOf(V.zoom) + dir));
+  if (ZOOMS[i] === V.zoom) return;
+  const sc = $("v-scroll"), rel = sc.scrollTop / Math.max(1, sc.scrollHeight);
+  V.zoom = ZOOMS[i]; V.tok++; layoutPages();
+  sc.scrollTop = rel * sc.scrollHeight;
+}
+function closeDoc() {
+  V.tok++; V.obs?.disconnect(); V.pageObs?.disconnect(); V.pdf?.destroy(); V.pdf = null;
+  $("viewer").classList.add("hidden"); $("viewer").classList.remove("flex");
+  $("v-box").innerHTML = "";
+  removeEventListener("contextmenu", blockCtx); removeEventListener("keydown", blockKeys);
+  if (S.view === "home") render();
+}
+
+/* ================= ÉVÉNEMENTS ================= */
+const focusSearch = () => setTimeout(() => $("q")?.focus(), 60);
+document.addEventListener("click", async (e) => {
+  const t = e.target.closest("[data-act]"); if (!t) return;
+  const a = t.dataset.act, id = t.dataset.id;
+  switch (a) {
+    case "authmode": setAuthMode(t.dataset.m); break;
+    case "go": S.view = t.dataset.v; if (t.dataset.t) S.adminTab = t.dataset.t; render(); if (t.dataset.focus) focusSearch(); break;
+    case "kw": S.q = t.dataset.k; S.cats.clear(); S.view = "library"; render(); break;
+    case "shelf": S.cats = new Set([t.dataset.c]); S.q = ""; S.view = "library"; render(); break;
+    case "atab": S.adminTab = t.dataset.t; S.editing = null; render(); break;
+    case "open": { const d = S.docs.find((x) => x.id === id); if (d) openDoc(d); break; }
+    case "vclose": closeDoc(); break;
+    case "zoom": zoom(+t.dataset.z); break;
+    case "logout": if (await ask("Se déconnecter de l'application ?", "Se déconnecter")) await sb.auth.signOut(); break;
+    case "clearq": S.q = ""; render(); focusSearch(); break;
+    case "clearcats": S.cats.clear(); render(); break;
+    case "request": {
+      const { error } = await sb.rpc("request_adherent");
+      if (error) return toast(errMsg(error), "err");
+      S.profil.requested_adherent = true; render(); toast("Demande envoyée. La région vous donnera accès après vérification.");
+      break;
+    }
+    case "approve": case "reject": {
+      const ids = [...S.sel]; if (!ids.length) return;
+      if (a === "reject" && !(await ask(`Refuser ${plural(ids.length, "demande")} ? Les comptes concernés resteront invités.`, "Refuser"))) return;
+      const patch = a === "approve" ? { role: "adherent", requested_adherent: false } : { requested_adherent: false };
+      const { error } = await sb.from("profiles").update(patch).in("id", ids);
+      if (error) return toast(errMsg(error), "err");
+      S.sel.clear(); await loadAdmin(); render();
+      toast(a === "approve" ? (ids.length > 1 ? `${ids.length} adhérents validés` : "Adhérent validé") : (ids.length > 1 ? "Demandes refusées" : "Demande refusée"));
+      break;
+    }
+    case "pick": $("file-in").click(); break;
+    case "unqueue": S.queue.splice(+t.dataset.i, 1); renderAdmin(); break;
+    case "declare": S.queue.push({ ...blankItem(), existing: t.dataset.f, title: titleFrom(t.dataset.f) }); renderAdmin(); break;
+    case "publish": if (!S.busy) await publish(); break;
+    case "edit": S.editing = id; renderAdmin(); break;
+    case "cancelEdit": S.editing = null; renderAdmin(); break;
+    case "saveEdit": {
+      const v = (k) => $("e-" + k).value.trim();
+      if (!v("title")) return toast("Ajoutez un titre.", "err");
+      const { error } = await sb.from("documents").update({
+        title: v("title"), category: v("category") || null, reference: v("reference") || null,
+        description: v("description") || null, keywords: kwParse(v("keywords")),
+      }).eq("id", id);
+      if (error) return toast(errMsg(error), "err");
+      S.editing = null; await loadDocs(); renderAdmin(); toast("Modifications enregistrées");
+      break;
+    }
+    case "del": {
+      const d = S.docs.find((x) => x.id === id); if (!d) return;
+      if (!(await ask(`Supprimer « ${d.title} » ? Le PDF sera aussi retiré du stockage.`, "Supprimer"))) return;
+      const { error } = await sb.from("documents").delete().eq("id", id);
+      if (error) return toast(errMsg(error), "err");
+      if (!S.docs.some((x) => x.id !== id && x.storage_path === d.storage_path) && S.files.includes(d.storage_path)) {
+        const r = await sb.storage.from(BUCKET).remove([d.storage_path]);
+        if (r.error) toast("Fiche supprimée, mais le PDF reste dans le stockage : " + errMsg(r.error), "err");
+      }
+      await Promise.all([loadDocs(), loadAdmin()]); renderAdmin(); toast("Document supprimé");
+      break;
+    }
+  }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("viewer").classList.contains("hidden")) closeDoc();
+  if ((e.key === "Enter" || e.key === " ") && e.target.id === "dropzone") { e.preventDefault(); $("file-in").click(); }
+});
+
+document.addEventListener("change", async (e) => {
+  const t = e.target;
+  if (t.id === "file-in") { addFiles(t.files); t.value = ""; return; }
+  if (t.dataset.cat !== undefined) { t.checked ? S.cats.add(t.dataset.cat) : S.cats.delete(t.dataset.cat); render(); return; }
+  if (t.dataset.sel) { t.checked ? S.sel.add(t.dataset.sel) : S.sel.delete(t.dataset.sel); renderAdmin(); return; }
+  if (t.hasAttribute("data-selall")) { pending().forEach((u) => t.checked ? S.sel.add(u.id) : S.sel.delete(u.id)); renderAdmin(); return; }
+  if (t.dataset.q !== undefined && t.type === "checkbox") {
+    S.queue.forEach((q, i) => { if (t.checked && i !== +t.dataset.q) q.is_public = false; });
+    S.queue[+t.dataset.q].is_public = t.checked; renderAdmin(); return;
+  }
+  if (t.dataset.pub) {
+    const err = await setPublic(t.dataset.pub, t.checked);
+    if (err) { toast(errMsg(err), "err"); t.checked = !t.checked; return; }
+    await loadDocs(); renderAdmin(); toast(t.checked ? "Document de découverte défini" : "Document réservé aux adhérents");
+    return;
+  }
+  if (t.dataset.role) {
+    const { error } = await sb.from("profiles").update({ role: t.value, requested_adherent: false }).eq("id", t.dataset.role);
+    if (error) return toast(errMsg(error), "err");
+    await loadAdmin(); renderNav(); renderAdmin(); toast(`Statut modifié : ${ROLES[t.value]}`);
+  }
+});
+
+document.addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.id === "q") { S.q = t.value; renderLibList(); return; }
+  if (t.id === "mq") { S.memberQ = t.value; const pos = t.selectionStart; renderAdmin(); const n = $("mq"); n.focus(); n.setSelectionRange(pos, pos); return; }
+  if (t.dataset.q !== undefined && t.type !== "checkbox") S.queue[+t.dataset.q][t.dataset.f] = t.value;
+});
+
+/* Glisser-déposer */
+const hasFiles = (e) => e.dataTransfer?.types?.includes("Files");
+const inDrop = () => S.view === "admin" && S.adminTab === "documents";
+["dragenter", "dragover"].forEach((ev) => addEventListener(ev, (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault(); // empêche le navigateur d'ouvrir le PDF
+  if (inDrop()) $("dropzone")?.classList.add("drag");
+}));
+addEventListener("dragleave", (e) => { if (!e.relatedTarget) $("dropzone")?.classList.remove("drag"); });
+addEventListener("drop", (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  $("dropzone")?.classList.remove("drag");
+  if (inDrop()) addFiles(e.dataTransfer.files);
+  else if (isAdmin()) { S.view = "admin"; S.adminTab = "documents"; render(); addFiles(e.dataTransfer.files); }
+});
+let lastW = innerWidth;
+addEventListener("resize", () => { if (V.pdf && Math.abs(innerWidth - lastW) > 40) { lastW = innerWidth; V.tok++; layoutPages(); } });
 </script>
 </body>
 </html>
