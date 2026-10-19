@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#FFFFFF">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="FO Docs">
 <title>Base documentaire FO Nouvelle-Aquitaine</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -218,6 +225,32 @@ function topKeywords(n = 8) {
   return [...c.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "fr")).slice(0, n).map(([k]) => k);
 }
 
+/* ================= INSTALLATION (PWA) ================= */
+let installEvt = null;
+const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const installHidden = () => { try { return localStorage.getItem("fo_install_later") === "1"; } catch { return false; } };
+addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; if (S.profil && ["home", "profile"].includes(S.view)) render(); });
+addEventListener("appinstalled", () => { installEvt = null; toast("Application installée. Retrouvez-la sur votre écran d'accueil !"); if (S.profil) render(); });
+if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+
+function installCard(force = false) {
+  if (isStandalone() || (!force && installHidden())) return "";
+  const ios = isIOS();
+  if (!installEvt && !ios) return "";
+  return `<div class="relative mt-5 overflow-hidden rounded-[22px] p-5" style="background:#E3F4EC">${deco("#1F7A5A")}
+    <div class="relative flex items-start gap-4">
+      <img src="/icons/icon-192.png" alt="" class="h-12 w-12 shrink-0 rounded-xl shadow-sm">
+      <span><b class="block text-[17px]">Mettez FO Docs sur votre téléphone</b><span class="text-[15px] text-ink-soft">${ios
+        ? "Touchez le bouton Partager <b>⎙</b> en bas de Safari, puis « Sur l'écran d'accueil ». Une icône, et c'est réglé."
+        : "Une icône sur l'écran d'accueil, l'app en plein écran. Plus besoin de chercher le lien."}</span></span>
+    </div>
+    <div class="relative mt-4 flex gap-2">
+      ${ios ? "" : `<button data-act="install" class="flex-1 rounded-2xl py-3.5 text-[16px] font-bold text-white" style="background:#1F7A5A">Installer l'application</button>`}
+      ${force ? "" : `<button data-act="installLater" class="${ios ? "flex-1" : ""} rounded-2xl bg-white px-4 py-3.5 text-[16px] font-semibold text-ink-soft">Plus tard</button>`}
+    </div></div>`;
+}
+
 /* ================= AUTHENTIFICATION ================= */
 function setAuthMode(m) {
   authMode = m;
@@ -420,6 +453,7 @@ function vHome() {
 
   ${wrap(`
     ${inviteCard()}
+    ${installCard()}
     ${isAdmin() && np ? `
       <button data-act="go" data-v="admin" data-t="demandes" class="mt-5 flex w-full items-center gap-4 rounded-[22px] bg-white p-5 text-left ring-1 ring-line transition hover:ring-ink">
         <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl font-display text-2xl font-bold text-white" style="background:${THEME.admin.c}">${np}</span>
@@ -514,6 +548,7 @@ function vProfile() {
       </dl>
     </div>
     ${inviteCard()}
+    ${installCard(true)}
     <div class="mt-5 flex items-start gap-4 rounded-[22px] bg-white p-5 text-[15px] leading-relaxed text-ink-soft">
       <span class="text-3xl" aria-hidden="true">🔒</span>
       <span><b class="block text-ink">Documents protégés</b>Les textes se lisent ici et nulle part ailleurs : pas d'impression, pas de téléchargement. Même pas en douce.</span>
@@ -812,6 +847,8 @@ document.addEventListener("click", async (e) => {
     case "atab": S.adminTab = t.dataset.t; S.editing = null; render(); break;
     case "open": { const d = S.docs.find((x) => x.id === id); if (d) openDoc(d); break; }
     case "vclose": closeDoc(); break;
+    case "install": if (installEvt) { installEvt.prompt(); const r = await installEvt.userChoice; if (r.outcome === "accepted") installEvt = null; render(); } break;
+    case "installLater": try { localStorage.setItem("fo_install_later", "1"); } catch {} render(); toast("C'est noté. L'option reste disponible dans votre profil."); break;
     case "zoom": zoom(+t.dataset.z); break;
     case "logout": if (await ask("Déjà ? Les textes vous attendront sagement.", "Se déconnecter")) await sb.auth.signOut(); break;
     case "clearq": S.q = ""; render(); focusSearch(); break;
