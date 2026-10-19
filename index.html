@@ -49,14 +49,15 @@
 
 <!-- ================= CONNEXION / INSCRIPTION ================= -->
 <div id="auth" class="hidden min-h-screen">
-  <section class="relative overflow-hidden bg-white px-6 pt-12 pb-36">
-    <div class="mx-auto max-w-md">
+  <section class="relative overflow-hidden px-6 pt-12 pb-36" style="background:#E7EEFC">
+    <svg class="pointer-events-none absolute -right-16 -top-12 h-72 w-72" viewBox="0 0 200 200" aria-hidden="true"><circle cx="118" cy="82" r="72" fill="#2B4C9B" opacity=".13"/><circle cx="52" cy="150" r="30" fill="#1F7A5A" opacity=".22"/><rect x="138" y="136" width="40" height="40" rx="11" fill="#B7791F" opacity=".35" transform="rotate(18 158 156)"/></svg>
+    <div class="relative mx-auto max-w-md">
       <div class="flex items-center gap-3">
         <span class="grid h-12 w-12 place-items-center rounded-xl bg-fo font-display text-2xl font-extrabold text-white">FO</span>
         <span class="leading-tight"><b class="block text-[17px]">Force Ouvrière</b><span class="text-sm text-ink-soft">Nouvelle-Aquitaine</span></span>
       </div>
-      <h1 class="shout enter mt-10 text-[54px] sm:text-[64px]">Vos droits,<br>noir sur blanc.</h1>
-      <p class="mt-4 max-w-xs text-[17px] text-ink-soft">Conventions, accords et fiches juridiques réunis pour les élus et adhérents FO.</p>
+      <h1 class="shout enter relative mt-10 text-[54px] sm:text-[64px]" style="color:#2B4C9B">Vos droits,<br>noir sur blanc.</h1>
+      <p class="mt-4 max-w-xs text-[17px] text-ink-soft">Conventions, accords et fiches juridiques, réunis pour les élus et adhérents FO. Sans jargon inutile.</p>
     </div>
   </section>
   <div class="relative -mt-24 px-4 pb-12">
@@ -299,22 +300,58 @@ function renderNav() {
   items.push(["profile", "Profil", "user"]);
   const n = pending().length;
   $("nav").innerHTML = items.map(([id, label, icn]) => {
-    const on = S.view === id;
-    return `<button data-act="go" data-v="${id}" aria-current="${on ? "page" : "false"}" class="relative flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-2 text-[12px] font-semibold transition lg:flex-none lg:py-3 ${on ? "bg-white text-ink lg:bg-ink lg:text-white" : "text-white/60 hover:text-white lg:text-ink-soft lg:hover:bg-paper lg:hover:text-ink"}">
+    const on = S.view === id, c = THEME[id].c;
+    return `<button data-act="go" data-v="${id}" aria-current="${on ? "page" : "false"}" ${on ? `style="--c:${c}"` : ""} class="relative flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-2 text-[12px] font-semibold transition lg:flex-none lg:py-3 ${on ? "bg-white text-[var(--c)] lg:bg-[var(--c)] lg:text-white" : "text-white/60 hover:text-white lg:text-ink-soft lg:hover:bg-paper lg:hover:text-ink"}">
       ${ic(icn, "w-6 h-6")}${label}
       ${id === "admin" && n ? `<span class="absolute right-[22%] top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-fo px-1 text-[11px] text-white">${n}</span>` : ""}
     </button>`;
   }).join("");
 }
 
-/* En-tête rouge des pages intérieures */
-const pageHead = (t, sub = "") => `
-  <header class="bg-white px-4 pb-5" style="padding-top:max(24px,env(safe-area-inset-top))">
-    <div class="mx-auto max-w-2xl"><div class="fo-bar mb-4"></div><h1 class="font-display text-[38px] font-bold leading-none">${t}</h1>${sub ? `<p class="mt-2 text-[16px] text-ink-soft">${sub}</p>` : ""}</div>
-  </header>`;
+/* Chaque rubrique a sa couleur et son ton */
+const THEME = {
+  home:    { c: "#2B4C9B", bg: "#E7EEFC", emo: "📚" },
+  library: { c: "#1F7A5A", bg: "#E3F4EC", emo: "🔎" },
+  admin:   { c: "#6B3FA0", bg: "#EFE8FA", emo: "🛠️" },
+  profile: { c: "#B7791F", bg: "#FBF1DD", emo: "👋" },
+};
+const deco = (c) => `<svg class="pointer-events-none absolute -right-12 -top-10 h-56 w-56" viewBox="0 0 200 200" aria-hidden="true"><circle cx="118" cy="82" r="72" fill="${c}" opacity=".13"/><circle cx="52" cy="150" r="30" fill="${c}" opacity=".2"/><rect x="138" y="136" width="40" height="40" rx="11" fill="${c}" opacity=".28" transform="rotate(18 158 156)"/></svg>`;
+const pageHead = (t, sub = "", view = S.view) => {
+  const th = THEME[view];
+  return `<header class="relative overflow-hidden px-4 pb-7" style="background:${th.bg};padding-top:max(26px,env(safe-area-inset-top))">${deco(th.c)}
+    <div class="relative mx-auto max-w-2xl">
+      <span class="grid h-12 w-12 place-items-center rounded-2xl bg-white text-2xl shadow-sm" aria-hidden="true">${th.emo}</span>
+      <h1 class="mt-4 font-display text-[40px] font-bold leading-none" style="color:${th.c}">${t}</h1>${sub ? `<p class="mt-2 max-w-md text-[16px] text-ink-soft">${sub}</p>` : ""}
+    </div></header>`;
+};
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+function greeting(first) {
+  const h = new Date().getHours(), n = first ? " " + esc(first) : "";
+  if (h < 5)  return [`Encore debout${n} ?`, "Le droit du travail, lui, ne dort jamais."];
+  if (h < 12) return [`Bonjour${n}`, "Un café, puis un petit article ?"];
+  if (h < 14) return [`Bon appétit${n}`, "Une lecture légère pour la digestion ?"];
+  if (h < 18) return [`Bon après-midi${n}`, "Un article pour la route ?"];
+  return [`Bonsoir${n}`, "Une dernière lecture avant de couper ?"];
+}
+/* Une phrase par rayon, selon son nom */
+const TAGS = [
+  [/cong|repos|vacance|absence/, "Le droit de souffler, noir sur blanc."],
+  [/forma/, "Apprendre est un droit. Parfois même un plaisir."],
+  [/qvt|qualite|bien-etre|bien etre/, "Le bien-être au travail, version signée."],
+  [/handi|\bth\b|inclusion/, "L'égalité, article par article."],
+  [/classif|salair|remun|emploi|grille/, "Qui fait quoi, et pour combien."],
+  [/convention|ccn/, "La bible du quotidien."],
+  [/cse|elu|deleg|instance|syndic/, "Pour les élus qui ne lâchent rien."],
+  [/sante|securit|ssct|risque/, "Rentrer entier le soir, c'est la base."],
+  [/teletrav|horaire|temps/, "Où, quand, combien de temps."],
+  [/accord/, "Ce qui a été négocié, et gagné."],
+];
+const FALLBACK = ["Rangé, classé, prêt à servir.", "De quoi répondre à la direction.", "Tout ce qu'il faut savoir, sans jargon inutile."];
+const tagline = (c) => { const n = norm(c); for (const [r, t] of TAGS) if (r.test(n)) return t; let h = 0; for (const ch of c) h = (h + ch.charCodeAt(0)) % FALLBACK.length; return FALLBACK[h]; };
+const tint = (hex, a = "1F") => hex + a;
 const wrap = (html, cls = "") => `<div class="mx-auto max-w-2xl px-4 ${cls}">${html}</div>`;
 const sectionTitle = (t, extra = "") => `<div class="mb-3 mt-9 flex items-end justify-between gap-3"><h2 class="font-display text-[26px] font-bold leading-none">${t}</h2>${extra}</div>`;
-const empty = (t, sub = "") => `<div class="rounded-[22px] border-2 border-dashed border-line px-6 py-10 text-center"><p class="font-semibold">${t}</p>${sub ? `<p class="mt-1 text-sm text-ink-soft">${sub}</p>` : ""}</div>`;
+const empty = (t, sub = "", emo = "🗂️") => `<div class="rounded-[22px] border-2 border-dashed border-line bg-white/50 px-6 py-10 text-center"><span class="text-4xl" aria-hidden="true">${emo}</span><p class="mt-2 text-[17px] font-semibold">${t}</p>${sub ? `<p class="mt-1 text-[15px] text-ink-soft">${sub}</p>` : ""}</div>`;
 
 /* Carte document : une chemise de dossier, la tranche colorée indique le rayon */
 function docCard(d, compact = false) {
@@ -323,7 +360,7 @@ function docCard(d, compact = false) {
     <span class="spine" style="background:${col}"></span>
     <span class="flex items-start gap-3">
       <span class="min-w-0 flex-1">
-        ${d.category ? `<span class="mb-1 inline-block text-[13px] font-semibold" style="color:${col}">${esc(d.category)}</span>` : ""}
+        ${d.category ? `<span class="mb-1.5 inline-block rounded-full px-2.5 py-0.5 text-[13px] font-semibold" style="color:${col};background:${tint(col)}">${esc(d.category)}</span>` : ""}
         <span class="block text-[18px] font-semibold leading-snug">${esc(d.title)}</span>
         ${d.reference ? `<span class="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-paper px-2 py-0.5 text-[13px] font-semibold text-ink-soft">§ ${esc(d.reference)}</span>` : ""}
         ${!compact && d.description ? `<span class="mt-2 line-clamp-2 block text-[15px] leading-relaxed text-ink-soft">${esc(d.description)}</span>` : ""}
@@ -331,7 +368,7 @@ function docCard(d, compact = false) {
       </span>
       <span class="mt-1 flex shrink-0 flex-col items-end gap-2">
         ${d.is_public ? `<span class="rounded-full bg-sky-50 px-2.5 py-1 text-[12px] font-semibold text-sky-700 ring-1 ring-sky-200">Découverte</span>` : ""}
-        <span class="grid h-9 w-9 place-items-center rounded-full bg-paper text-ink-soft transition group-hover:bg-ink group-hover:text-white">${ic("chevron", "w-4 h-4")}</span>
+        <span class="grid h-9 w-9 place-items-center rounded-full transition group-hover:scale-110" style="background:${tint(col)};color:${col}">${ic("chevron", "w-4 h-4")}</span>
       </span>
     </span>
   </button>`;
@@ -344,15 +381,15 @@ function inviteCard() {
   if (p.requested_adherent) return `
     <div class="mt-5 flex items-start gap-4 rounded-[22px] bg-amber-50 p-5 ring-1 ring-amber-200">
       <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-700">${ic("clock", "w-6 h-6")}</span>
-      <span><b class="block text-[17px] text-amber-900">Demande en cours d'examen</b><span class="text-[15px] text-amber-800">La région valide votre adhésion. Vous aurez accès à tous les textes dès validation.</span></span>
+      <span><b class="block text-[17px] text-amber-900">Votre demande est sur le bureau de la région</b><span class="text-[15px] text-amber-800">Patience, ça avance. Tous les textes s'ouvriront dès la validation.</span></span>
     </div>`;
   return `
-    <div class="mt-5 rounded-[22px] bg-white p-5 ring-1 ring-line">
-      <div class="flex items-start gap-4">
-        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-blue-soft text-blue">${ic("lock", "w-6 h-6")}</span>
-        <span><b class="block text-[17px]">Accédez à tous les textes</b><span class="text-[15px] text-ink-soft">Les accords et fiches juridiques sont réservés aux adhérents FO. Un document de découverte reste ouvert.</span></span>
+    <div class="relative mt-5 overflow-hidden rounded-[22px] p-5" style="background:#FFF4D6">${deco("#B7791F")}
+      <div class="relative flex items-start gap-4">
+        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-2xl" aria-hidden="true">🔑</span>
+        <span><b class="block text-[17px]">Le reste de la bibliothèque est derrière cette porte</b><span class="text-[15px] text-ink-soft">La clé : votre adhésion FO. En attendant, un document de découverte vous est ouvert.</span></span>
       </div>
-      <button data-act="request" class="mt-5 w-full rounded-2xl bg-ink py-4 text-[17px] font-bold text-white transition hover:bg-black">Demander mon accès adhérent</button>
+      <button data-act="request" class="relative mt-5 w-full rounded-2xl bg-ink py-4 text-[17px] font-bold text-white transition hover:bg-black">Demander mon accès adhérent</button>
     </div>`;
 }
 
@@ -362,21 +399,21 @@ function vHome() {
   const cats = allCats(), kws = topKeywords(), np = pending().length;
   const recent = getRecent().map((id) => S.docs.find((d) => d.id === id)).filter(Boolean).slice(0, 3);
   const newest = S.docs.slice(0, 3);
-  const full = p.role !== "invite";
+  const full = p.role !== "invite", [hello, quip] = greeting(first), th = THEME.home;
 
   return `
-  <section class="relative bg-white px-4 pb-8" style="padding-top:max(24px,env(safe-area-inset-top))">
-    <div class="mx-auto max-w-2xl">
+  <section class="relative overflow-hidden px-4 pb-8" style="background:${th.bg};padding-top:max(24px,env(safe-area-inset-top))">${deco(th.c)}
+    <div class="relative mx-auto max-w-2xl">
       <div class="flex items-center gap-3">
         <span class="grid h-11 w-11 place-items-center rounded-xl bg-fo font-display text-xl font-extrabold text-white lg:hidden">FO</span>
-        <span class="min-w-0 flex-1 leading-tight"><b class="block truncate text-[17px]">Bonjour${first ? " " + esc(first) : ""}</b><span class="text-sm text-ink-soft">${ROLES[p.role]}, Nouvelle-Aquitaine</span></span>
+        <span class="min-w-0 flex-1 leading-tight"><b class="block truncate text-[17px]">${hello}</b><span class="text-sm text-ink-soft">${quip}</span></span>
       </div>
-      <h1 class="shout enter mt-7 text-[42px] sm:text-[52px]">Quel texte<br>cherchez-vous&nbsp;?</h1>
+      <h1 class="shout enter mt-7 text-[42px] sm:text-[52px]" style="color:${th.c}">Quel texte<br>cherchez-vous&nbsp;?</h1>
       ${full ? `
-      <button data-act="go" data-v="library" data-focus="1" class="mt-6 flex w-full items-center gap-3 rounded-2xl border-2 border-line bg-paper px-4 py-4 text-left text-ink transition hover:border-blue">
+      <button data-act="go" data-v="library" data-focus="1" class="mt-6 flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-4 text-left text-ink shadow-[0_10px_26px_-14px_rgba(43,76,155,.6)] ring-2 ring-transparent transition hover:ring-blue">
         ${ic("search", "w-6 h-6 text-ink-soft")}<span class="text-[17px] text-ink-faint">Congés, délégation, L2315-7…</span>
       </button>
-      ${kws.length ? `<div class="no-sb -mx-4 mt-4 flex gap-2 overflow-x-auto px-4">${kws.map((k) => `<button data-act="kw" data-k="${esc(k)}" class="shrink-0 rounded-full border-2 border-line bg-white px-4 py-2 text-[15px] font-medium text-ink transition hover:border-ink">${esc(k)}</button>`).join("")}</div>` : ""}`
+      ${kws.length ? `<div class="no-sb -mx-4 mt-4 flex gap-2 overflow-x-auto px-4">${kws.map((k, i) => { const c = SHELF[i % SHELF.length]; return `<button data-act="kw" data-k="${esc(k)}" class="shrink-0 rounded-full px-4 py-2 text-[15px] font-semibold transition hover:-translate-y-0.5" style="background:#fff;color:${c};box-shadow:inset 0 0 0 2px ${tint(c, "55")}">${esc(k)}</button>`; }).join("")}</div>` : ""}`
       : `<p class="mt-4 max-w-sm text-[17px] text-ink-soft">Consultez le document de découverte ci-dessous, puis demandez votre accès adhérent.</p>`}
     </div>
   </section>
@@ -385,8 +422,8 @@ function vHome() {
     ${inviteCard()}
     ${isAdmin() && np ? `
       <button data-act="go" data-v="admin" data-t="demandes" class="mt-5 flex w-full items-center gap-4 rounded-[22px] bg-white p-5 text-left ring-1 ring-line transition hover:ring-ink">
-        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-fo font-display text-2xl font-bold text-white">${np}</span>
-        <span class="flex-1"><b class="block text-[17px]">${np > 1 ? "Demandes d'adhésion" : "Demande d'adhésion"} en attente</b><span class="text-[15px] text-ink-soft">Valider en un geste</span></span>
+        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl font-display text-2xl font-bold text-white" style="background:${THEME.admin.c}">${np}</span>
+        <span class="flex-1"><b class="block text-[17px]">${np > 1 ? `${np} personnes frappent à la porte` : "Quelqu'un frappe à la porte"}</b><span class="text-[15px] text-ink-soft">Ouvrir en un geste</span></span>
         ${ic("chevron", "w-5 h-5 text-ink-faint")}
       </button>` : ""}
 
@@ -395,11 +432,13 @@ function vHome() {
       <div class="no-sb -mx-4 flex gap-3 overflow-x-auto px-4 pb-2 pt-3">
         ${cats.map((c) => {
           const n = S.docs.filter((d) => d.category === c).length, col = catColor(c);
-          return `<button data-act="shelf" data-c="${esc(c)}" class="relative w-[150px] shrink-0 text-left">
+          return `<button data-act="shelf" data-c="${esc(c)}" class="relative w-[176px] shrink-0 text-left transition hover:-translate-y-1">
             <span class="tab absolute -top-3 left-0 h-4 w-full rounded-t-lg" style="background:${col}"></span>
-            <span class="relative block h-[118px] rounded-b-2xl rounded-tr-2xl p-4 text-white shadow-[0_10px_22px_-12px_rgba(28,36,48,.6)]" style="background:${col}">
+            <span class="relative block h-[150px] overflow-hidden rounded-b-2xl rounded-tr-2xl p-4 text-white shadow-[0_10px_22px_-12px_rgba(28,36,48,.6)]" style="background:${col}">
+              <span class="pointer-events-none absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-white/15"></span>
               <span class="block font-display text-[23px] font-bold leading-[1.02]">${esc(c)}</span>
-              <span class="absolute bottom-3 left-4 text-sm text-white/85">${plural(n, "texte")}</span>
+              <span class="mt-1.5 block text-[13px] leading-snug text-white/85">${tagline(c)}</span>
+              <span class="absolute bottom-3 left-4 rounded-full bg-white/20 px-2 py-0.5 text-[13px] font-semibold">${plural(n, "texte")}</span>
             </span>
           </button>`;
         }).join("")}
@@ -408,17 +447,17 @@ function vHome() {
     ${recent.length ? `${sectionTitle("Repris récemment")}<div class="space-y-3">${recent.map((d) => docCard(d, true)).join("")}</div>` : ""}
 
     ${sectionTitle(full ? "Derniers ajouts" : "Document de découverte", full && S.docs.length > 3 ? `<button data-act="go" data-v="library" class="text-[15px] font-semibold text-blue underline-offset-4 hover:underline">Tous les textes</button>` : "")}
-    <div class="space-y-3">${(full ? newest : S.docs).map((d) => docCard(d)).join("") || empty("Aucun texte pour l'instant.", "Les documents publiés par la région apparaîtront ici.")}</div>
+    <div class="space-y-3">${(full ? newest : S.docs).map((d) => docCard(d)).join("") || empty("Les étagères sont encore vides.", "Elles se rempliront bientôt de bonnes lectures.", "🪴")}</div>
   `)}`;
 }
 
 /* ================= BIBLIOTHÈQUE ================= */
 function vLibrary() {
-  if (S.profil.role === "invite") return pageHead("Les textes", "Accès découverte") + wrap(`${inviteCard()}${sectionTitle("Ouvert à tous")}<div id="lib-list"></div>`);
+  if (S.profil.role === "invite") return pageHead("Les textes", "Un avant-goût, en attendant la suite.") + wrap(`${inviteCard()}${sectionTitle("Ouvert à tous")}<div id="lib-list"></div>`);
   const cats = allCats(), hasNone = S.docs.some((d) => !d.category);
   const chips = [...cats, ...(hasNone && cats.length ? [NONE] : [])];
   return `
-  ${pageHead("Les textes", `${plural(S.docs.length, "document")} à votre disposition`)}
+  ${pageHead("Les textes", `${plural(S.docs.length, "document")}, rangés, classés, prêts à servir.`)}
   <div class="sticky top-0 z-20 border-b border-line bg-paper/95 backdrop-blur">
     <div class="mx-auto max-w-2xl px-4 pb-3 pt-3">
       <label class="flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-sm ring-2 ring-transparent transition focus-within:ring-blue">
@@ -452,30 +491,32 @@ function renderLibList() {
     <div class="flex rounded-xl bg-white p-1 text-[14px] font-semibold ring-1 ring-line" role="group" aria-label="Trier">
       ${[["recent", "Récents"], ["az", "De A à Z"]].map(([k, l]) => `<button data-act="sort" data-s="${k}" aria-pressed="${S.sort === k}" class="rounded-lg px-3 py-1.5 ${S.sort === k ? "bg-ink text-white" : "text-ink-soft"}">${l}</button>`).join("")}
     </div></div>`;
-  $("lib-list").innerHTML = head + `<div class="space-y-3">${list.map((d) => docCard(d)).join("") ||
-    empty("Aucun texte ne correspond.", S.q || S.cats.size ? "Essayez un autre mot, ou retirez un filtre." : "")}</div>`;
+  const one = S.cats.size === 1 && !S.cats.has(NONE) ? [...S.cats][0] : null;
+  const shelfBanner = one ? `<div class="mb-4 rounded-[18px] px-4 py-3 text-[15px] font-medium" style="background:${tint(catColor(one))};color:${catColor(one)}">${esc(one)} : ${tagline(one)}</div>` : "";
+  $("lib-list").innerHTML = shelfBanner + head + `<div class="space-y-3">${list.map((d) => docCard(d)).join("") ||
+    empty("Rien trouvé, même en regardant sous le tapis.", S.q || S.cats.size ? "Essayez un autre mot, ou retirez un filtre." : "", "🧹")}</div>`;
 }
 
 /* ================= PROFIL ================= */
 function vProfile() {
   const p = S.profil;
   return `
-  ${pageHead("Mon profil")}
+  ${pageHead("Mon profil", "C'est vous, en version fiche.")}
   ${wrap(`
     <div class="mt-5 rounded-[22px] bg-white p-6 ring-1 ring-line">
       <div class="flex items-center gap-4">
-        <span class="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-ink font-display text-2xl font-bold text-white">${esc(initials(p.full_name, p.email))}</span>
+        <span class="grid h-16 w-16 shrink-0 place-items-center rounded-2xl font-display text-2xl font-bold text-white" style="background:${THEME.profile.c}">${esc(initials(p.full_name, p.email))}</span>
         <span class="min-w-0"><b class="block truncate text-[19px]">${esc(p.full_name || "Sans nom")}</b><span class="block truncate text-[15px] text-ink-soft">${esc(p.email)}</span></span>
       </div>
       <dl class="mt-6 grid grid-cols-2 gap-3 text-[15px]">
-        <div class="rounded-2xl bg-paper p-4"><dt class="text-ink-soft">Statut</dt><dd class="mt-0.5 font-semibold">${ROLES[p.role]}</dd></div>
-        <div class="rounded-2xl bg-paper p-4"><dt class="text-ink-soft">Inscrit depuis</dt><dd class="mt-0.5 font-semibold">${fmtDate(p.created_at)}</dd></div>
+        <div class="rounded-2xl p-4" style="background:${THEME.profile.bg}"><dt class="text-ink-soft">Statut</dt><dd class="mt-0.5 font-semibold">${ROLES[p.role]}</dd></div>
+        <div class="rounded-2xl p-4" style="background:${THEME.library.bg}"><dt class="text-ink-soft">Inscrit depuis</dt><dd class="mt-0.5 font-semibold">${fmtDate(p.created_at)}</dd></div>
       </dl>
     </div>
     ${inviteCard()}
-    <div class="mt-5 rounded-[22px] bg-white p-5 text-[15px] leading-relaxed text-ink-soft">
-      <b class="block text-ink">Documents protégés</b>
-      Les textes se consultent dans l'application uniquement : ils ne peuvent être ni téléchargés, ni imprimés.
+    <div class="mt-5 flex items-start gap-4 rounded-[22px] bg-white p-5 text-[15px] leading-relaxed text-ink-soft">
+      <span class="text-3xl" aria-hidden="true">🔒</span>
+      <span><b class="block text-ink">Documents protégés</b>Les textes se lisent ici et nulle part ailleurs : pas d'impression, pas de téléchargement. Même pas en douce.</span>
     </div>
     <button data-act="logout" class="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-4 text-[17px] font-semibold text-ink ring-1 ring-line hover:ring-ink">${ic("logout", "w-5 h-5")} Se déconnecter</button>
   `)}`;
@@ -485,10 +526,10 @@ function vProfile() {
 function vAdmin() {
   const tabs = [["demandes", "Demandes", pending().length], ["membres", "Membres", 0], ["documents", "Documents", 0]];
   return `
-  ${pageHead("Gestion", "Adhésions, membres et publication des textes")}
+  ${pageHead("Gestion", "La salle des machines : adhésions, membres et publication.")}
   <div class="sticky top-0 z-20 border-b border-line bg-paper/95 backdrop-blur">
     <div class="mx-auto grid max-w-2xl grid-cols-3 gap-1 px-4 py-3" role="tablist">
-      ${tabs.map(([id, l, n]) => `<button data-act="atab" data-t="${id}" class="relative rounded-2xl py-3 text-[15px] font-semibold transition ${S.adminTab === id ? "bg-ink text-white" : "text-ink-soft hover:bg-white"}">${l}${n ? ` <span class="ml-1 rounded-full bg-fo px-1.5 py-0.5 text-[12px] text-white">${n}</span>` : ""}</button>`).join("")}
+      ${tabs.map(([id, l, n]) => `<button data-act="atab" data-t="${id}" class="relative rounded-2xl py-3 text-[15px] font-semibold transition ${S.adminTab === id ? "text-white shadow" : "text-ink-soft hover:bg-white"}" ${S.adminTab === id ? `style="background:${THEME.admin.c}"` : ""}>${l}${n ? ` <span class="ml-1 rounded-full bg-fo px-1.5 py-0.5 text-[12px] text-white">${n}</span>` : ""}</button>`).join("")}
     </div>
   </div>
   ${wrap(`<div id="admin-body" class="pt-5"></div>`)}`;
@@ -501,7 +542,7 @@ const avatar = (u, cls = "bg-paper text-ink-soft") => `<span class="grid h-11 w-
 
 function aDemandes() {
   const list = pending();
-  if (!list.length) return empty("Aucune demande en attente.", "Les nouvelles demandes d'adhésion apparaîtront ici.");
+  if (!list.length) return empty("Personne à la porte.", "Profitez-en pour un café. Les nouvelles demandes apparaîtront ici.", "☕");
   const all = list.every((u) => S.sel.has(u.id)), n = S.sel.size;
   return `
   <div class="mb-3 flex items-center justify-between">
@@ -527,7 +568,7 @@ function aMembres() {
   const c = (r) => S.members.filter((m) => m.role === r).length;
   return `
   <div class="mb-4 grid grid-cols-3 gap-2">
-    ${[["adherent", "Adhérents"], ["invite", "Invités"], ["admin", "Admins"]].map(([r, l]) => `<div class="rounded-[18px] bg-white p-4"><b class="block font-display text-[32px] leading-none">${c(r)}</b><span class="text-[14px] text-ink-soft">${l}</span></div>`).join("")}
+    ${[["adherent", "Adhérents", THEME.library], ["invite", "Invités", THEME.profile], ["admin", "Admins", THEME.admin]].map(([r, l, th]) => `<div class="rounded-[18px] p-4" style="background:${th.bg}"><b class="block font-display text-[34px] leading-none" style="color:${th.c}">${c(r)}</b><span class="text-[14px] text-ink-soft">${l}</span></div>`).join("")}
   </div>
   <label class="flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 ring-2 ring-transparent focus-within:ring-blue">${ic("search", "w-5 h-5 text-ink-faint")}<input id="mq" type="search" value="${esc(S.memberQ)}" placeholder="Rechercher un nom ou un email" class="min-w-0 flex-1 bg-transparent text-[16px] outline-none"></label>
   <ul class="mt-3 space-y-2">${list.map((m) => `<li class="flex items-center gap-3 rounded-[18px] bg-white p-3.5">
@@ -537,7 +578,7 @@ function aMembres() {
       : `<select data-role="${m.id}" aria-label="Statut de ${esc(m.full_name || m.email)}" class="rounded-xl border-2 border-line bg-white px-2 py-2 text-[15px] font-medium outline-none focus:border-blue">
           <option value="invite" ${m.role === "invite" ? "selected" : ""}>Invité</option>
           <option value="adherent" ${m.role === "adherent" ? "selected" : ""}>Adhérent</option></select>`}
-  </li>`).join("") || empty("Aucun membre trouvé.")}</ul>`;
+  </li>`).join("") || empty("Personne ne répond à ce nom.", "Vérifiez l'orthographe, ou cherchez par email.", "🕵️")}</ul>`;
 }
 
 const field = (label, html) => `<label class="block"><span class="mb-1.5 block text-[14px] font-semibold text-ink-soft">${label}</span>${html}</label>`;
@@ -548,15 +589,15 @@ function aDocuments() {
   const orphans = S.files.filter((f) => !declared.has(f) && !S.queue.some((q) => q.existing === f));
   return `
   <div id="dropzone" data-act="pick" role="button" tabindex="0" class="cursor-pointer rounded-[22px] border-2 border-dashed border-ink-faint/50 bg-white px-6 py-10 text-center transition hover:border-blue hover:bg-blue-soft">
-    <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-blue-soft text-blue">${ic("upload", "w-8 h-8")}</span>
-    <b class="mt-4 block font-display text-[26px] leading-tight">Déposez vos PDF ici</b>
-    <span class="mt-1 block text-[15px] text-ink-soft">ou touchez pour les choisir. ${MAX_MB} Mo maximum par fichier.</span>
+    <span class="mx-auto grid h-16 w-16 place-items-center rounded-2xl text-white" style="background:${THEME.admin.c}">${ic("upload", "w-8 h-8")}</span>
+    <b class="mt-4 block font-display text-[26px] leading-tight" style="color:${THEME.admin.c}">Déposez vos PDF ici</b>
+    <span class="mt-1 block text-[15px] text-ink-soft">ou touchez pour les choisir. On n'en perd aucun, promis.<br>${MAX_MB} Mo maximum par fichier.</span>
   </div>
   <datalist id="catlist">${allCats().map((c) => `<option value="${esc(c)}">`).join("")}</datalist>
 
   ${S.queue.length ? `${sectionTitle(`À publier (${S.queue.length})`)}
   <div class="space-y-3">${S.queue.map(queueCard).join("")}</div>
-  <button data-act="publish" ${S.busy ? "disabled" : ""} class="sticky bottom-28 z-10 lg:bottom-6 mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-4 text-[17px] font-bold text-white shadow-xl disabled:opacity-70">${S.busy ? spinner("w-5 h-5") + " Publication en cours…" : ic("upload", "w-5 h-5") + ` Publier ${S.queue.length > 1 ? "les " + S.queue.length + " documents" : "le document"}`}</button>` : ""}
+  <button data-act="publish" ${S.busy ? "disabled" : ""} class="sticky bottom-28 z-10 lg:bottom-6 mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-[17px] font-bold text-white shadow-xl disabled:opacity-70" style="background:${THEME.admin.c}">${S.busy ? spinner("w-5 h-5") + " Publication en cours…" : ic("upload", "w-5 h-5") + ` Publier ${S.queue.length > 1 ? "les " + S.queue.length + " documents" : "le document"}`}</button>` : ""}
 
   ${orphans.length ? `${sectionTitle("Fichiers à déclarer")}
   <p class="-mt-1 mb-3 text-[15px] text-ink-soft">Ces PDF sont dans le stockage mais invisibles dans l'application.</p>
@@ -565,7 +606,7 @@ function aDocuments() {
     <button data-act="declare" data-f="${esc(f)}" class="shrink-0 rounded-xl bg-white px-3.5 py-2 text-[15px] font-semibold text-amber-800 ring-1 ring-amber-300">Déclarer</button></li>`).join("")}</ul>` : ""}
 
   ${sectionTitle(`En ligne (${S.docs.length})`)}
-  <ul class="space-y-2">${S.docs.map(docRow).join("") || empty("Aucun texte en ligne.", "Déposez un premier PDF ci-dessus.")}</ul>`;
+  <ul class="space-y-2">${S.docs.map(docRow).join("") || empty("Rien en rayon pour l'instant.", "Déposez un premier PDF ci-dessus.", "📭")}</ul>`;
 }
 
 function queueCard(q, i) {
@@ -676,7 +717,7 @@ async function publish() {
   S.queue = S.queue.filter((q) => q.status !== "done");
   S.busy = false;
   await loadDocs(); renderAdmin();
-  if (ok) toast(ok > 1 ? `${ok} documents publiés` : "Document publié");
+  if (ok) toast(ok > 1 ? `${ok} documents publiés. Les collègues vont pouvoir réviser !` : "Document publié. Les collègues vont pouvoir réviser !");
 }
 
 /* ================= LECTEUR PDF : rendu page par page à l'écran ================= */
@@ -726,7 +767,7 @@ async function openDoc(d) {
   $("viewer").classList.remove("hidden"); $("viewer").classList.add("flex");
   $("v-back").innerHTML = ic("back", "w-6 h-6");
   $("v-title").textContent = d.title; $("v-sub").textContent = d.reference || d.category || "";
-  $("v-msg").innerHTML = `<span class="inline-flex items-center gap-2">${spinner("w-5 h-5")} Ouverture du document…</span>`;
+  $("v-msg").innerHTML = `<span class="inline-flex items-center gap-2">${spinner("w-5 h-5")} ${pick(["On dépoussière le classeur…", "On chausse nos lunettes…", "On cherche la bonne page…", "Le juriste arrive…"])}</span>`;
   $("v-box").innerHTML = ""; $("v-page").classList.add("hidden");
   addEventListener("contextmenu", blockCtx); addEventListener("keydown", blockKeys);
   try {
@@ -771,14 +812,14 @@ document.addEventListener("click", async (e) => {
     case "open": { const d = S.docs.find((x) => x.id === id); if (d) openDoc(d); break; }
     case "vclose": closeDoc(); break;
     case "zoom": zoom(+t.dataset.z); break;
-    case "logout": if (await ask("Se déconnecter de l'application ?", "Se déconnecter")) await sb.auth.signOut(); break;
+    case "logout": if (await ask("Déjà ? Les textes vous attendront sagement.", "Se déconnecter")) await sb.auth.signOut(); break;
     case "clearq": S.q = ""; render(); focusSearch(); break;
     case "clearcats": S.cats.clear(); render(); break;
     case "sort": S.sort = t.dataset.s; renderLibList(); break;
     case "request": {
       const { error } = await sb.rpc("request_adherent");
       if (error) return toast(errMsg(error), "err");
-      S.profil.requested_adherent = true; render(); toast("Demande envoyée. La région vous donnera accès après vérification.");
+      S.profil.requested_adherent = true; render(); toast("Demande envoyée. La région s'en occupe, vous n'avez plus rien à faire.");
       break;
     }
     case "approve": case "reject": {
@@ -788,7 +829,7 @@ document.addEventListener("click", async (e) => {
       const { error } = await sb.from("profiles").update(patch).in("id", ids);
       if (error) return toast(errMsg(error), "err");
       S.sel.clear(); await loadAdmin(); render();
-      toast(a === "approve" ? (ids.length > 1 ? `${ids.length} adhérents validés` : "Adhérent validé") : (ids.length > 1 ? "Demandes refusées" : "Demande refusée"));
+      toast(a === "approve" ? (ids.length > 1 ? `Bienvenue au club : ${ids.length} adhérents validés` : "Bienvenue au club : adhérent validé") : (ids.length > 1 ? "Demandes refusées" : "Demande refusée"));
       break;
     }
     case "pick": $("file-in").click(); break;
