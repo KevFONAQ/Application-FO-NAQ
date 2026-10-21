@@ -41,6 +41,8 @@
   .tab { clip-path: polygon(0 0, 58% 0, 66% 100%, 0 100%); }
   .protege, .protege * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   .protege canvas { pointer-events: none; display: block; width: 100%; height: 100%; }
+  .hl { position: absolute; background: rgba(255, 214, 0, .45); mix-blend-mode: multiply; border-radius: 2px; pointer-events: none; }
+  .hl.on { background: rgba(255, 140, 0, .55); box-shadow: 0 0 0 2px #E8590C; }
   .page { position: relative; margin: 0 auto 12px; background: #fff; border-radius: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.35); overflow: hidden; }
   .drag { border-color: #2B4C9B !important; background: #EAF0FB !important; }
   .enter { animation: enter .45s cubic-bezier(.2,.8,.2,1) both }
@@ -60,7 +62,7 @@
     <svg class="pointer-events-none absolute -right-16 -top-12 h-72 w-72" viewBox="0 0 200 200" aria-hidden="true"><circle cx="118" cy="82" r="72" fill="#2B4C9B" opacity=".13"/><circle cx="52" cy="150" r="30" fill="#1F7A5A" opacity=".22"/><rect x="138" y="136" width="40" height="40" rx="11" fill="#B7791F" opacity=".35" transform="rotate(18 158 156)"/></svg>
     <div class="relative mx-auto max-w-md">
       <div class="flex items-center gap-3">
-        <span class="grid h-12 w-12 place-items-center rounded-xl bg-fo font-display text-2xl font-extrabold text-white">FO</span>
+        <span class="flex h-12 w-12 flex-col items-center justify-center rounded-xl bg-fo leading-none text-white" aria-label="FO Nouvelle-Aquitaine"><b class="font-display text-[22px] font-extrabold">FO</b><span class="mt-0.5 font-display text-[11px] font-bold tracking-[.14em]">NAQ</span></span>
         <span class="leading-tight"><b class="block text-[17px]">Force Ouvrière</b><span class="text-sm text-ink-soft">Nouvelle-Aquitaine</span></span>
       </div>
       <h1 class="shout enter relative mt-10 text-[54px] sm:text-[64px]" style="color:#2B4C9B">Vos droits,<br>noir sur blanc.</h1>
@@ -98,7 +100,7 @@
 <div id="app" class="hidden min-h-screen">
   <main id="view" class="pb-32 lg:pb-12 lg:pl-28"></main>
   <nav class="fixed inset-x-0 bottom-0 z-30 px-3 lg:inset-y-0 lg:left-0 lg:right-auto lg:w-28 lg:bg-white lg:px-3 lg:py-5 lg:shadow-[1px_0_0_#DCE0E6]" style="padding-bottom:max(10px,env(safe-area-inset-bottom))">
-    <div class="mb-6 hidden lg:grid lg:place-items-center"><span class="grid h-12 w-12 place-items-center rounded-xl bg-fo font-display text-2xl font-extrabold text-white">FO</span></div>
+    <div class="mb-6 hidden lg:grid lg:place-items-center"><span class="flex h-12 w-12 flex-col items-center justify-center rounded-xl bg-fo leading-none text-white" aria-label="FO Nouvelle-Aquitaine"><b class="font-display text-[22px] font-extrabold">FO</b><span class="mt-0.5 font-display text-[11px] font-bold tracking-[.14em]">NAQ</span></span></div>
     <div id="nav" class="mx-auto flex max-w-md rounded-[22px] bg-ink p-1.5 shadow-[0_12px_30px_-8px_rgba(28,36,48,.6)] lg:max-w-none lg:flex-col lg:gap-1 lg:bg-transparent lg:p-0 lg:shadow-none"></div>
   </nav>
 </div>
@@ -110,8 +112,21 @@
   <div class="flex items-center gap-2 bg-ink px-3 py-2.5 text-white" style="padding-top:max(10px,env(safe-area-inset-top))">
     <button data-act="vclose" class="grid h-11 w-11 place-items-center rounded-full hover:bg-white/10" aria-label="Fermer le document" id="v-back"></button>
     <div class="min-w-0 flex-1"><p id="v-title" class="truncate font-semibold"></p><p id="v-sub" class="truncate text-[13px] text-white/60"></p></div>
+    <button data-act="vfind" id="v-findbtn" class="grid h-11 w-11 place-items-center rounded-full hover:bg-white/10" aria-label="Rechercher dans le document"></button>
     <button data-act="zoom" data-z="-1" class="grid h-11 w-11 place-items-center rounded-full text-2xl hover:bg-white/10" aria-label="Réduire">−</button>
     <button data-act="zoom" data-z="1" class="grid h-11 w-11 place-items-center rounded-full text-2xl hover:bg-white/10" aria-label="Agrandir">+</button>
+  </div>
+  <div id="v-find" class="hidden bg-ink px-3 pb-3">
+    <div class="mx-auto flex max-w-3xl items-center gap-1.5">
+      <label class="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-white px-3 py-2.5 text-ink">
+        <span id="v-qicon" class="text-ink-faint"></span>
+        <input id="v-q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Chercher dans ce document (ex : 29.3)" class="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-ink-faint">
+      </label>
+      <button data-act="vlist" id="v-count" class="h-11 min-w-[60px] rounded-xl px-2 text-[14px] font-semibold text-white/85 hover:bg-white/10" aria-live="polite" title="Afficher la liste des résultats"></button>
+      <button data-act="vprev" class="grid h-11 w-11 place-items-center rounded-full text-xl text-white hover:bg-white/10" aria-label="Résultat précédent">↑</button>
+      <button data-act="vnext" class="grid h-11 w-11 place-items-center rounded-full text-xl text-white hover:bg-white/10" aria-label="Résultat suivant">↓</button>
+    </div>
+    <div id="v-hits" class="mx-auto mt-2 max-h-[38vh] max-w-3xl space-y-0.5 overflow-y-auto"></div>
   </div>
   <div id="v-scroll" class="relative flex-1 overflow-auto px-3 py-4">
     <p id="v-msg" class="py-20 text-center text-white/70"></p>
@@ -145,6 +160,18 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+/* Normalisation caractère par caractère : garde la longueur du texte, pour surligner au bon endroit */
+const n1 = (ch) => { const x = ch.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); return x.length === 1 ? x : (ch.toLowerCase()[0] || " "); };
+const normKeep = (s) => { let o = ""; for (let i = 0; i < s.length; i++) o += /\s/.test(s[i]) ? " " : n1(s[i]); return o; };
+const terms = (q) => norm(q).split(/\s+/).filter(Boolean);
+const reEsc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function marked(str, toks) {
+  const n = normKeep(str), on = new Array(str.length).fill(false);
+  toks.forEach((t) => { let i = n.indexOf(t); while (t && i > -1) { for (let k = i; k < i + t.length; k++) on[k] = true; i = n.indexOf(t, i + t.length); } });
+  let out = "", open = false;
+  for (let i = 0; i < str.length; i++) { if (on[i] !== open) { out += on[i] ? '<mark class="rounded bg-amber-200 px-0.5 text-ink">' : "</mark>"; open = on[i]; } out += esc(str[i]); }
+  return out + (open ? "</mark>" : "");
+}
 const fmtMB = (b) => (b / 1048576).toFixed(1).replace(".", ",") + " Mo";
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "";
 const plural = (n, s, p) => `${n} ${n > 1 ? (p || s + "s") : s}`;
@@ -206,6 +233,7 @@ const errMsg = (e) => FR_ERR[e?.message] || e?.message || String(e);
 const S = {
   profil: null, docs: [], view: "home", adminTab: "demandes",
   cats: new Set(), q: "", sort: "recent", members: [], sel: new Set(), memberQ: "",
+  hits: { q: "", byDoc: new Map(), loading: false }, indexing: null,
   files: [], queue: [], editing: null, busy: false,
 };
 let loadedFor = null, authMode = "login";
@@ -323,7 +351,7 @@ function render() {
   renderNav();
   const v = { home: vHome, library: vLibrary, admin: vAdmin, profile: vProfile }[S.view] || vHome;
   $("view").innerHTML = v();
-  if (S.view === "library") renderLibList();
+  if (S.view === "library") { scheduleHits(); renderLibList(); }
   if (S.view === "admin") renderAdmin();
   window.scrollTo(0, 0);
 }
@@ -438,7 +466,7 @@ function vHome() {
   <section class="relative overflow-hidden px-4 pb-8" style="background:${th.bg};padding-top:max(24px,env(safe-area-inset-top))">${deco(th.c)}
     <div class="relative mx-auto max-w-2xl">
       <div class="flex items-center gap-3">
-        <span class="grid h-11 w-11 place-items-center rounded-xl bg-fo font-display text-xl font-extrabold text-white lg:hidden">FO</span>
+        <span class="flex h-11 w-11 flex-col items-center justify-center rounded-xl bg-fo leading-none text-white lg:hidden" aria-label="FO Nouvelle-Aquitaine"><b class="font-display text-[20px] font-extrabold">FO</b><span class="mt-0.5 font-display text-[10px] font-bold tracking-[.14em]">NAQ</span></span>
         <span class="min-w-0 flex-1 leading-tight"><b class="block truncate text-[17px]">${hello}</b><span class="text-sm text-ink-soft">${quip}</span></span>
       </div>
       <h1 class="shout enter mt-7 text-[42px] sm:text-[52px]" style="color:${th.c}">Quel texte<br>cherchez-vous&nbsp;?</h1>
@@ -496,7 +524,7 @@ function vLibrary() {
     <div class="mx-auto max-w-2xl px-4 pb-3 pt-3">
       <label class="flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-sm ring-2 ring-transparent transition focus-within:ring-blue">
         ${ic("search", "w-6 h-6 text-ink-soft")}
-        <input id="q" type="search" value="${esc(S.q)}" placeholder="Mot-clé, titre ou article (L2315-7)" class="min-w-0 flex-1 bg-transparent text-[17px] outline-none placeholder:text-ink-faint" autocomplete="off" enterkeyhint="search">
+        <input id="q" type="search" value="${esc(S.q)}" placeholder="Mot-clé, titre ou article (29.3, L2315-7)" class="min-w-0 flex-1 bg-transparent text-[17px] outline-none placeholder:text-ink-faint" autocomplete="off" enterkeyhint="search">
         ${S.q ? `<button data-act="clearq" class="grid h-8 w-8 place-items-center rounded-full bg-paper text-ink-soft" aria-label="Effacer la recherche">${ic("x", "w-4 h-4")}</button>` : ""}
       </label>
       ${chips.length ? `<div class="no-sb -mx-4 mt-3 flex gap-2 overflow-x-auto px-4">
@@ -514,21 +542,51 @@ function vLibrary() {
   ${wrap(`<div id="lib-list" class="pt-4"></div>`)}`;
 }
 function renderLibList() {
-  const t = norm(S.q).split(/\s+/).filter(Boolean);
-  const list = S.docs.filter((d) => {
-    if (S.cats.size && !S.cats.has(d.category || NONE)) return false;
-    const h = norm([d.title, d.reference, d.description, d.category, ...(d.keywords || [])].join(" "));
-    return t.every((x) => h.includes(x));
-  });
+  const t = terms(S.q);
+  const catOk = (d) => !S.cats.size || S.cats.has(d.category || NONE);
+  const meta = S.docs.filter((d) => catOk(d) && t.every((x) => norm([d.title, d.reference, d.description, d.category, ...(d.keywords || [])].join(" ")).includes(x)));
+  const H = S.hits.q === S.q ? S.hits.byDoc : new Map();
+  const list = [...meta, ...S.docs.filter((d) => catOk(d) && !meta.includes(d) && H.has(d.id))];
   if (S.sort === "az") list.sort((a, b) => a.title.localeCompare(b.title, "fr"));
-  const head = S.profil.role === "invite" ? "" : `<div class="mb-3 flex items-center justify-between gap-3"><p class="text-[15px] text-ink-soft" aria-live="polite">${list.length ? plural(list.length, "texte trouvé", "textes trouvés") : ""}</p>
+  const loading = S.hits.loading && S.hits.q === S.q;
+  const head = S.profil.role === "invite" ? "" : `<div class="mb-3 flex items-center justify-between gap-3"><p class="flex items-center gap-2 text-[15px] text-ink-soft" aria-live="polite">${list.length ? plural(list.length, "texte trouvé", "textes trouvés") : ""}${loading ? `<span class="inline-flex items-center gap-1.5 text-[14px]">${spinner()} on fouille dans les pages…</span>` : ""}</p>
     <div class="flex rounded-xl bg-white p-1 text-[14px] font-semibold ring-1 ring-line" role="group" aria-label="Trier">
       ${[["recent", "Récents"], ["az", "De A à Z"]].map(([k, l]) => `<button data-act="sort" data-s="${k}" aria-pressed="${S.sort === k}" class="rounded-lg px-3 py-1.5 ${S.sort === k ? "bg-ink text-white" : "text-ink-soft"}">${l}</button>`).join("")}
     </div></div>`;
   const one = S.cats.size === 1 && !S.cats.has(NONE) ? [...S.cats][0] : null;
   const shelfBanner = one ? `<div class="mb-4 rounded-[18px] px-4 py-3 text-[15px] font-medium" style="background:${tint(catColor(one))};color:${catColor(one)}">${esc(one)} : ${tagline(one)}</div>` : "";
-  $("lib-list").innerHTML = shelfBanner + head + `<div class="space-y-3">${list.map((d) => docCard(d)).join("") ||
-    empty("Rien trouvé, même en regardant sous le tapis.", S.q || S.cats.size ? "Essayez un autre mot, ou retirez un filtre." : "", "🧹")}</div>`;
+  $("lib-list").innerHTML = shelfBanner + head + `<div class="space-y-3">${list.map((d) => `<div>${docCard(d)}${hitsBlock(d, H.get(d.id), t)}</div>`).join("") ||
+    (loading ? "" : empty("Rien trouvé, même en regardant sous le tapis.", S.q || S.cats.size ? "Essayez un autre mot, ou retirez un filtre." : "", "🧹"))}</div>`;
+}
+function hitsBlock(d, h, toks) {
+  if (!h) return "";
+  const col = catColor(d.category), more = h.count - h.pages.length;
+  return `<div class="-mt-3 rounded-b-[18px] bg-white/70 px-3 pb-3 pt-6 ring-1 ring-line">
+    <p class="mb-1 px-2 text-[14px] font-semibold" style="color:${col}">Trouvé dans le texte, sur ${plural(h.count, "page")}</p>
+    <ul>${h.pages.map((x) => `<li><button data-act="openhit" data-id="${d.id}" data-p="${x.page}" class="flex w-full items-start gap-3 rounded-xl p-2 text-left transition hover:bg-white">
+      <span class="shrink-0 rounded-lg px-2 py-0.5 text-[13px] font-bold" style="background:${tint(col)};color:${col}">p. ${x.page}</span>
+      <span class="line-clamp-2 text-[14px] leading-snug text-ink-soft">…${marked(String(x.snippet || "").replace(/\s+/g, " ").trim(), toks)}…</span></button></li>`).join("")}</ul>
+    ${more > 0 ? `<button data-act="openhit" data-id="${d.id}" data-p="${h.pages[0].page}" class="mt-1 px-2 text-[14px] font-semibold text-blue">Et ${plural(more, "autre page", "autres pages")} : voir dans le document</button>` : ""}
+  </div>`;
+}
+let hitTimer = 0;
+function scheduleHits() {
+  clearTimeout(hitTimer);
+  const q = S.q, toks = terms(q);
+  if (S.profil?.role === "invite" || toks.join("").length < 2) { S.hits = { q, byDoc: new Map(), loading: false }; return; }
+  if (S.hits.q === q) return;
+  S.hits = { q, byDoc: new Map(), loading: true };
+  hitTimer = setTimeout(async () => {
+    const { data, error } = await sb.rpc("search_pages", { terms: toks });
+    if (S.q !== q) return;
+    const byDoc = new Map();
+    (error ? [] : data || []).forEach((r) => {
+      const h = byDoc.get(r.document_id) || { count: Number(r.doc_hits) || 1, pages: [] };
+      h.pages.push({ page: r.page, snippet: r.snippet }); byDoc.set(r.document_id, h);
+    });
+    S.hits = { q, byDoc, loading: false };
+    if (S.view === "library") renderLibList();
+  }, 280);
 }
 
 /* ================= PROFIL ================= */
@@ -640,6 +698,10 @@ function aDocuments() {
     <span class="text-amber-700">${ic("doc", "w-6 h-6")}</span><span class="min-w-0 flex-1 truncate text-[15px]">${esc(f)}</span>
     <button data-act="declare" data-f="${esc(f)}" class="shrink-0 rounded-xl bg-white px-3.5 py-2 text-[15px] font-semibold text-amber-800 ring-1 ring-amber-300">Déclarer</button></li>`).join("")}</ul>` : ""}
 
+  ${(() => { const todo = S.docs.filter((d) => d.text_pages == null && S.files.includes(d.storage_path)); return todo.length ? `<div class="mt-8 flex flex-wrap items-center gap-4 rounded-[22px] p-5" style="background:${THEME.admin.bg}">
+    <span class="text-3xl" aria-hidden="true">🔦</span>
+    <span class="min-w-0 flex-1"><b class="block text-[17px]">${plural(todo.length, "document")} à indexer</b><span class="text-[15px] text-ink-soft">Pour que la recherche trouve aussi les mots à l'intérieur des PDF.</span></span>
+    <button data-act="indexAll" ${S.indexing ? "disabled" : ""} class="shrink-0 rounded-2xl px-4 py-3 font-bold text-white disabled:opacity-50" style="background:${THEME.admin.c}">Tout indexer</button></div>` : ""; })()}
   ${sectionTitle(`En ligne (${S.docs.length})`)}
   <ul class="space-y-2">${S.docs.map(docRow).join("") || empty("Rien en rayon pour l'instant.", "Déposez un premier PDF ci-dessus.", "📭")}</ul>`;
 }
@@ -689,7 +751,62 @@ function docRow(d) {
       <button data-act="del" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-fo-soft hover:text-fo" aria-label="Supprimer">${ic("trash", "w-5 h-5")}</button>
     </div>
     <label class="mt-2 inline-flex cursor-pointer items-center gap-2.5 text-[14px] text-ink-soft"><input type="checkbox" class="cb !h-5 !w-5" data-pub="${d.id}" ${d.is_public ? "checked" : ""}> Document de découverte</label>
+    ${missing ? "" : indexLine(d)}
   </li>`;
+}
+
+function indexLine(d) {
+  if (S.indexing?.id === d.id) return `<p id="ix-${d.id}" class="mt-2 flex items-center gap-2 text-[14px] text-ink-soft">${spinner()} Lecture du texte…</p>`;
+  const st = d.text_pages == null ? ["Recherche dans le texte : pas encore indexé", "text-amber-700", "Indexer"]
+    : d.text_pages === 0 ? ["Aucun texte lisible (PDF scanné ?) : la recherche dans le texte ne le trouvera pas", "text-fo", "Réessayer"]
+    : [`Texte indexé : ${plural(d.text_pages, "page")}`, "text-emerald-700", "Réindexer"];
+  return `<div class="mt-2 flex items-center justify-between gap-3 text-[14px]"><span class="${st[1]}">${st[0]}</span>
+    <button data-act="index" data-id="${d.id}" ${S.indexing ? "disabled" : ""} class="shrink-0 rounded-xl bg-paper px-3 py-1.5 font-semibold text-ink disabled:opacity-40">${st[2]}</button></div>`;
+}
+
+/* ================= TEXTE DES PDF : extraction et indexation ================= */
+function joinItems(items) {
+  let str = ""; const segs = [];
+  items.forEach((it) => {
+    if (typeof it.str !== "string") return;
+    const x = it.str.replace(/\u0000/g, "");
+    segs.push({ it, start: str.length, end: str.length + x.length, s: x });
+    str += x; if (it.hasEOL) str += " ";
+  });
+  return { str, segs };
+}
+async function extractPages(src, onPage) {
+  const pdf = await pdfjsLib.getDocument(src).promise, rows = [];
+  try {
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const { str } = joinItems((await (await pdf.getPage(p)).getTextContent()).items);
+      rows.push({ page: p, content: str, norm: normKeep(str) });
+      onPage?.(p, pdf.numPages);
+    }
+  } finally { pdf.destroy(); }
+  return rows;
+}
+const ixErr = (e) => /document_pages|search_pages|text_pages|text_chars/.test(errMsg(e))
+  ? "La recherche dans le texte n'est pas encore activée dans la base : exécutez le script SQL fourni."
+  : "Indexation impossible : " + errMsg(e);
+async function indexDoc(d, file) {
+  S.indexing = { id: d.id }; renderAdmin();
+  try {
+    let src;
+    if (file) src = { data: new Uint8Array(await file.arrayBuffer()) };
+    else { const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(d.storage_path, 900); if (error) throw error; src = data.signedUrl; }
+    const rows = await extractPages(src, (p, n) => { const el = $("ix-" + d.id); if (el) el.innerHTML = `${spinner()} Lecture du texte… page ${p} sur ${n}`; });
+    let r = await sb.from("document_pages").delete().eq("document_id", d.id); if (r.error) throw r.error;
+    const filled = rows.filter((x) => x.content.trim().length > 0);
+    for (let i = 0; i < filled.length; i += 40) {
+      r = await sb.from("document_pages").insert(filled.slice(i, i + 40).map((x) => ({ document_id: d.id, ...x })));
+      if (r.error) throw r.error;
+    }
+    const chars = filled.reduce((a, x) => a + x.content.trim().length, 0);
+    r = await sb.from("documents").update({ text_pages: filled.length, text_chars: chars }).eq("id", d.id); if (r.error) throw r.error;
+    S.hits = { q: "", byDoc: new Map(), loading: false };
+    return { pages: filled.length, total: rows.length };
+  } finally { S.indexing = null; }
 }
 
 /* ================= PUBLICATION ================= */
@@ -726,7 +843,7 @@ async function setPublic(id, on) {
 async function publish() {
   if (S.queue.filter((q) => q.is_public).length > 1) return toast("Un seul document de découverte est possible.", "err");
   S.busy = true; renderAdmin();
-  let ok = 0;
+  let ok = 0, ixFail = 0, noText = 0;
   for (const q of S.queue) {
     if (!q.title.trim()) { q.status = "err"; q.err = "Ajoutez un titre."; continue; }
     q.status = "busy"; q.err = ""; renderAdmin();
@@ -744,6 +861,7 @@ async function publish() {
       }).select("id").single();
       if (error) throw error;
       if (q.is_public) { const e = await setPublic(data.id, true); if (e) throw e; }
+      try { const ix = await indexDoc({ id: data.id, storage_path: path }, q.file); if (!ix.pages) noText++; } catch { ixFail++; }
       q.status = "done"; ok++;
     } catch (e) {
       if (uploaded) { await sb.storage.from(BUCKET).remove([path]); S.files = S.files.filter((f) => f !== path); }
@@ -754,12 +872,19 @@ async function publish() {
   S.busy = false;
   await loadDocs(); renderAdmin();
   if (ok) toast(ok > 1 ? `${ok} documents publiés. Les collègues vont pouvoir réviser !` : "Document publié. Les collègues vont pouvoir réviser !");
+  if (ixFail) toast(`${plural(ixFail, "document publié", "documents publiés")}, mais le texte n'a pas pu être indexé : bouton « Indexer » dans la liste.`, "err");
+  if (noText) toast(`${plural(noText, "PDF sans texte lisible", "PDF sans texte lisible")} (scanné ?) : la recherche dans le texte ne le trouvera pas.`, "err");
 }
 
 /* ================= LECTEUR PDF : rendu page par page à l'écran ================= */
 const blockCtx = (e) => e.preventDefault();
-const blockKeys = (e) => { if ((e.ctrlKey || e.metaKey) && "psu".includes(e.key.toLowerCase())) e.preventDefault(); };
-const V = { tok: 0, pdf: null, zoom: 1, ratio: 1.414, obs: null, pageObs: null };
+const blockKeys = (e) => {
+  if (!(e.ctrlKey || e.metaKey)) return;
+  const k = e.key.toLowerCase();
+  if ("psu".includes(k)) e.preventDefault();
+  if (k === "f") { e.preventDefault(); showFind(); }
+};
+const V = { tok: 0, pdf: null, doc: null, zoom: 1, ratio: 1.414, obs: null, pageObs: null, find: { tok: 0, q: "", hits: [], cur: -1, text: {} } };
 const ZOOMS = [1, 1.35, 1.75, 2.25];
 
 function layoutPages() {
@@ -794,11 +919,14 @@ async function renderPage(el, tok) {
     const c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height;
     el.style.height = Math.round(el.clientWidth * base.height / base.width) + "px";
     await p.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
-    if (tok === V.tok && el.dataset.r) { el.innerHTML = ""; el.appendChild(c); }
+    if (tok === V.tok && el.dataset.r) { el.innerHTML = ""; el.appendChild(c); paint(el); }
   } catch { delete el.dataset.r; }
 }
-async function openDoc(d) {
-  const tok = ++V.tok; V.zoom = 1;
+async function openDoc(d, opts = {}) {
+  const tok = ++V.tok; V.zoom = 1; V.doc = d;
+  V.find = { tok: V.find.tok + 1, q: "", hits: [], cur: -1, text: {} };
+  $("v-findbtn").innerHTML = ic("search", "w-6 h-6"); $("v-qicon").innerHTML = ic("search", "w-5 h-5");
+  hideFind();
   pushRecent(d.id);
   $("viewer").classList.remove("hidden"); $("viewer").classList.add("flex");
   $("v-back").innerHTML = ic("back", "w-6 h-6");
@@ -816,6 +944,7 @@ async function openDoc(d) {
     $("v-sub").textContent = `${d.reference ? d.reference + ", " : ""}${plural(pdf.numPages, "page")}`;
     $("v-msg").textContent = ""; $("v-page").classList.remove("hidden");
     layoutPages();
+    if (opts.q) { showFind(opts.q); runFind(opts.q, opts.page); }
   } catch (e) { if (tok === V.tok) $("v-msg").textContent = "Impossible d'ouvrir ce document : " + errMsg(e); }
 }
 function zoom(dir) {
@@ -827,12 +956,114 @@ function zoom(dir) {
   sc.scrollTop = rel * sc.scrollHeight;
 }
 function closeDoc() {
+  hideFind(); V.find.tok++; V.doc = null;
   V.tok++; V.obs?.disconnect(); V.pageObs?.disconnect(); V.pdf?.destroy(); V.pdf = null;
   $("viewer").classList.add("hidden"); $("viewer").classList.remove("flex");
   $("v-box").innerHTML = "";
   removeEventListener("contextmenu", blockCtx); removeEventListener("keydown", blockKeys);
   if (S.view === "home") render();
 }
+
+/* Recherche dans le document ouvert */
+function showFind(q) {
+  $("v-find").classList.remove("hidden");
+  if (q != null) $("v-q").value = q;
+  setTimeout(() => { if (q == null) $("v-q").focus(); }, 30);
+}
+function hideFind() {
+  $("v-find").classList.add("hidden"); $("v-q").value = ""; $("v-count").textContent = ""; $("v-hits").innerHTML = "";
+  V.find.tok++; V.find.q = ""; V.find.hits = []; V.find.cur = -1; paintAll();
+}
+async function pageText(p) {
+  if (V.find.text[p]) return V.find.text[p];
+  const page = await V.pdf.getPage(p), vp = page.getViewport({ scale: 1 });
+  const { str, segs } = joinItems((await page.getTextContent()).items);
+  return (V.find.text[p] = { str, n: normKeep(str), segs, vp });
+}
+function rectsFor(t, a, b) {
+  const out = [];
+  t.segs.forEach((g) => {
+    const s0 = Math.max(a, g.start), e0 = Math.min(b, g.end);
+    if (s0 >= e0 || !g.s.length) return;
+    const tx = pdfjsLib.Util.transform(t.vp.transform, g.it.transform);
+    const h = Math.hypot(tx[2], tx[3]) || 10, cw = (g.it.width || h * 0.5 * g.s.length) / g.s.length;
+    const x = tx[4] + cw * (s0 - g.start), y = tx[5] - h * 0.95;
+    out.push({ l: x / t.vp.width * 100, t: y / t.vp.height * 100, w: cw * (e0 - s0) / t.vp.width * 100, h: h * 1.25 / t.vp.height * 100 });
+  });
+  return out;
+}
+function paint(el) {
+  el.querySelectorAll(".hl").forEach((x) => x.remove());
+  const p = +el.dataset.p;
+  V.find.hits.forEach((h, i) => {
+    if (h.p !== p) return;
+    h.rects.forEach((r) => {
+      const m = document.createElement("div");
+      m.className = "hl" + (i === V.find.cur ? " on" : "");
+      m.style.cssText = `left:${r.l}%;top:${r.t}%;width:${r.w}%;height:${r.h}%`;
+      el.appendChild(m);
+    });
+  });
+}
+const paintAll = () => $("v-box").querySelectorAll(".page[data-r]").forEach(paint);
+function renderHitList() {
+  const H = V.find.hits, toks = terms(V.find.q);
+  $("v-hits").innerHTML = H.slice(0, 80).map((h, i) => `<button data-act="vgo" data-i="${i}" class="flex w-full items-start gap-3 rounded-xl px-2 py-2 text-left ${i === V.find.cur ? "bg-white/15" : "hover:bg-white/10"}">
+    <span class="shrink-0 rounded-lg bg-amber-300 px-2 py-0.5 text-[13px] font-bold text-ink">p. ${h.p}</span>
+    <span class="line-clamp-2 text-[14px] leading-snug text-white/85">…${marked(h.snip.replace(/\s+/g, " ").trim(), toks)}…</span></button>`).join("")
+    + (H.length > 80 ? `<p class="px-2 py-1 text-[13px] text-white/60">Et ${H.length - 80} autres : utilisez les flèches.</p>` : "");
+}
+async function runFind(q, wantPage) {
+  const tok = ++V.find.tok, toks = terms(q);
+  V.find.q = q; V.find.hits = []; V.find.cur = -1; paintAll();
+  $("v-hits").innerHTML = ""; $("v-hits").classList.remove("hidden");
+  if (!toks.length || !V.pdf) { $("v-count").textContent = ""; return; }
+  // « 29.3 » ne doit pas trouver « 129.30 » : pas de chiffre collé avant ou après
+  const re = new RegExp(toks.map((x, i) => (i === 0 && /^\d/.test(x) ? "(?<!\\d)" : "") + reEsc(x) + (i === toks.length - 1 && /\d$/.test(x) ? "(?!\\d)" : "")).join("\\s*"), "g");
+  let pages = null;
+  const dbToks = toks.filter((x) => !/[\\%_*]/.test(x));
+  if (V.doc?.text_pages > 0 && dbToks.length) {
+    let qb = sb.from("document_pages").select("page").eq("document_id", V.doc.id);
+    dbToks.forEach((x) => { qb = qb.like("norm", `%${x}%`); });
+    const { data, error } = await qb.order("page");
+    if (!error) pages = (data || []).map((r) => r.page);
+  }
+  if (tok !== V.find.tok) return;
+  pages = pages || Array.from({ length: V.pdf.numPages }, (_, i) => i + 1);
+  for (let k = 0; k < pages.length; k++) {
+    if (tok !== V.find.tok || !V.pdf) return;
+    if (k % 8 === 0 && pages.length > 8) $("v-count").textContent = `${Math.round(k / pages.length * 100)} %`;
+    const p = pages[k], t = await pageText(p);
+    re.lastIndex = 0; let m;
+    while ((m = re.exec(t.n))) {
+      if (!m[0].length) { re.lastIndex++; continue; }
+      const a = m.index, b = a + m[0].length;
+      V.find.hits.push({ p, rects: rectsFor(t, a, b), snip: t.str.slice(Math.max(0, a - 50), b + 70) });
+    }
+  }
+  if (tok !== V.find.tok) return;
+  if (!V.find.hits.length) {
+    $("v-count").textContent = "0";
+    $("v-hits").innerHTML = `<p class="px-2 py-2 text-[14px] text-white/75">Aucune occurrence. Essayez une autre écriture : 29.3, art. 29, ou un mot du titre.</p>`;
+    return;
+  }
+  let i = 0;
+  if (wantPage) { const j = V.find.hits.findIndex((h) => h.p >= wantPage); if (j >= 0) i = j; }
+  goHit(i, !wantPage);
+}
+function goHit(i, keepList = false) {
+  const H = V.find.hits; if (!H.length) return;
+  V.find.cur = ((i % H.length) + H.length) % H.length;
+  const h = H[V.find.cur];
+  $("v-count").textContent = `${V.find.cur + 1} / ${H.length}`;
+  $("v-hits").classList.toggle("hidden", !keepList);
+  renderHitList(); paintAll();
+  const el = $("v-box").querySelector(`.page[data-p="${h.p}"]`); if (!el) return;
+  const r = h.rects[0], sc = $("v-scroll");
+  const y = el.offsetTop + (r ? r.t / 100 * el.offsetHeight : 0) - sc.clientHeight * 0.3;
+  sc.scrollTo({ top: Math.max(0, y), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+let findTimer = 0;
 
 /* ================= ÉVÉNEMENTS ================= */
 const focusSearch = () => setTimeout(() => $("q")?.focus(), 60);
@@ -845,7 +1076,39 @@ document.addEventListener("click", async (e) => {
     case "kw": S.q = t.dataset.k; S.cats.clear(); S.view = "library"; render(); break;
     case "shelf": S.cats = new Set([t.dataset.c]); S.q = ""; S.view = "library"; render(); break;
     case "atab": S.adminTab = t.dataset.t; S.editing = null; render(); break;
-    case "open": { const d = S.docs.find((x) => x.id === id); if (d) openDoc(d); break; }
+    case "open": {
+      const d = S.docs.find((x) => x.id === id); if (!d) break;
+      const h = S.view === "library" && S.q && S.hits.q === S.q ? S.hits.byDoc.get(id) : null;
+      openDoc(d, h ? { q: S.q, page: h.pages[0].page } : {});
+      break;
+    }
+    case "openhit": { const d = S.docs.find((x) => x.id === id); if (d) openDoc(d, { q: S.q, page: +t.dataset.p }); break; }
+    case "vfind": if ($("v-find").classList.contains("hidden")) showFind(); else hideFind(); break;
+    case "vprev": goHit(V.find.cur - 1); break;
+    case "vnext": goHit(V.find.cur + 1); break;
+    case "vgo": goHit(+t.dataset.i); break;
+    case "vlist": if (V.find.hits.length) $("v-hits").classList.toggle("hidden"); break;
+    case "index": {
+      const d = S.docs.find((x) => x.id === id); if (!d || S.indexing) break;
+      try {
+        const r = await indexDoc(d);
+        toast(r.pages ? `Texte indexé : ${plural(r.pages, "page")} sur ${r.total}. La recherche le trouve maintenant.` : "Aucun texte lisible : ce PDF est probablement scanné.", r.pages ? "ok" : "err");
+      } catch (err) { toast(ixErr(err), "err"); }
+      await loadDocs(); renderAdmin(); break;
+    }
+    case "indexAll": {
+      if (S.indexing) break;
+      const todo = S.docs.filter((d) => d.text_pages == null && S.files.includes(d.storage_path));
+      let okN = 0, scan = 0;
+      for (const d of todo) {
+        try { const r = await indexDoc(d); r.pages ? okN++ : scan++; }
+        catch (err) { toast(ixErr(err), "err"); break; }
+      }
+      await loadDocs(); renderAdmin();
+      if (okN) toast(`${plural(okN, "document indexé", "documents indexés")}. On peut chercher dans le texte !`);
+      if (scan) toast(`${plural(scan, "PDF sans texte lisible", "PDF sans texte lisible")} (scanné ?).`, "err");
+      break;
+    }
     case "vclose": closeDoc(); break;
     case "install": if (installEvt) { installEvt.prompt(); const r = await installEvt.userChoice; if (r.outcome === "accepted") installEvt = null; render(); } break;
     case "installLater": try { localStorage.setItem("fo_install_later", "1"); } catch {} render(); toast("C'est noté. L'option reste disponible dans votre profil."); break;
@@ -902,7 +1165,13 @@ document.addEventListener("click", async (e) => {
   }
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !$("viewer").classList.contains("hidden")) closeDoc();
+  if (e.target.id === "v-q" && e.key === "Enter") {
+    e.preventDefault(); clearTimeout(findTimer);
+    if (V.find.q === e.target.value && V.find.hits.length) goHit(V.find.cur + (e.shiftKey ? -1 : 1));
+    else runFind(e.target.value);
+    return;
+  }
+  if (e.key === "Escape" && !$("viewer").classList.contains("hidden")) { if (!$("v-find").classList.contains("hidden")) hideFind(); else closeDoc(); }
   if ((e.key === "Enter" || e.key === " ") && e.target.id === "dropzone") { e.preventDefault(); $("file-in").click(); }
 });
 
@@ -931,7 +1200,8 @@ document.addEventListener("change", async (e) => {
 
 document.addEventListener("input", (e) => {
   const t = e.target;
-  if (t.id === "q") { S.q = t.value; renderLibList(); return; }
+  if (t.id === "q") { S.q = t.value; scheduleHits(); renderLibList(); return; }
+  if (t.id === "v-q") { clearTimeout(findTimer); const v = t.value; findTimer = setTimeout(() => runFind(v), 400); return; }
   if (t.id === "mq") { S.memberQ = t.value; const pos = t.selectionStart; renderAdmin(); const n = $("mq"); n.focus(); n.setSelectionRange(pos, pos); return; }
   if (t.dataset.q !== undefined && t.type !== "checkbox") S.queue[+t.dataset.q][t.dataset.f] = t.value;
 });
