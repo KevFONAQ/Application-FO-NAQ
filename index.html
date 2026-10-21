@@ -255,6 +255,7 @@ const S = {
   profil: null, docs: [], view: "home", adminTab: "demandes",
   cats: new Set(), q: "", sort: "recent", members: [], sel: new Set(), memberQ: "",
   hits: { q: "", byDoc: new Map(), loading: false }, indexing: null,
+  push: null,
   news: { list: [], urls: {}, limit: 20, more: false, off: false, composer: false, busy: false, draft: null },
   files: [], queue: [], editing: null, busy: false,
 };
@@ -334,6 +335,56 @@ function installCard(force = false) {
     </div></div>`;
 }
 
+/* ================= NOTIFICATIONS ================= */
+const VAPID_PUBLIC = "BEnVcZjO0PF-BkILopU-7hmKIIbCfjVJtyDfWZ6h6YQE-PPMJHks25D2U0wJVsGbi5Jsn-z0nTIp0mBJceKjZlw";
+const pushSupported = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const b64u = (s) => { const p = "=".repeat((4 - (s.length % 4)) % 4), b = atob((s + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(b, (c) => c.charCodeAt(0)); };
+const pushLater = () => { try { return localStorage.getItem("fo_push_later") === "1"; } catch { return false; } };
+async function refreshPush() {
+  let st = "unsupported";
+  if (!pushSupported()) st = isIOS() && !isStandalone() ? "ios-install" : "unsupported";
+  else if (Notification.permission === "denied") st = "denied";
+  else {
+    try { const reg = await navigator.serviceWorker.ready; st = (await reg.pushManager.getSubscription()) ? "on" : "off"; } catch { st = "off"; }
+  }
+  const changed = st !== S.push; S.push = st;
+  if (changed && S.profil && ["home", "profile"].includes(S.view)) render(true);
+}
+async function enablePush() {
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") { await refreshPush(); return toast("Notifications refusées. Vous pourrez les réactiver dans les réglages du navigateur.", "err"); }
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUBLIC) });
+    const j = sub.toJSON();
+    await sb.from("push_subscriptions").delete().eq("endpoint", j.endpoint);
+    const { error } = await sb.from("push_subscriptions").insert({ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, user_agent: navigator.userAgent.slice(0, 200) });
+    if (error && !/duplicate/i.test(error.message || "")) throw error;
+    toast("Notifications activées : vous serez prévenu à chaque nouvelle actualité.");
+  } catch (e) { toast("Activation impossible : " + errMsg(e), "err"); }
+  await refreshPush();
+}
+async function disablePush() {
+  try {
+    const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription();
+    if (sub) { await sb.from("push_subscriptions").delete().eq("endpoint", sub.endpoint); await sub.unsubscribe(); }
+    toast("Notifications désactivées sur cet appareil.");
+  } catch (e) { toast(errMsg(e), "err"); }
+  await refreshPush();
+}
+function pushCard(inProfile = false) {
+  const st = S.push;
+  if (!st || st === "unsupported") return inProfile ? `<div class="mt-5 rounded-[22px] bg-white p-5 text-[15px] text-ink-soft"><b class="block text-ink">🔔 Notifications</b>Ce navigateur ne gère pas les notifications. Essayez Chrome sur Android, ou installez l'application sur iPhone.</div>` : "";
+  if (!inProfile && (st !== "off" || pushLater())) return "";
+  const box = (inner) => `<div class="relative mt-5 overflow-hidden rounded-[22px] p-5" style="background:${THEME.profile.bg}">${deco(THEME.profile.c)}<div class="relative">${inner}</div></div>`;
+  const head = (t, d) => `<div class="flex items-start gap-4"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-2xl" aria-hidden="true">🔔</span><span><b class="block text-[17px]">${t}</b><span class="text-[15px] text-ink-soft">${d}</span></span></div>`;
+  if (st === "on") return box(head("Notifications activées", "Vous êtes prévenu à chaque nouvelle actualité sur cet appareil.") + `<button data-act="pushOff" class="mt-4 w-full rounded-2xl bg-white py-3.5 font-semibold text-ink">Désactiver sur cet appareil</button>`);
+  if (st === "denied") return box(head("Notifications bloquées", "Vous les avez refusées. Pour les réactiver : réglages du navigateur (cadenas à côté de l'adresse) > Notifications > Autoriser."));
+  if (st === "ios-install") return box(head("Notifications sur iPhone", "Installez d'abord l'application sur l'écran d'accueil (Partager > « Sur l'écran d'accueil »), ouvrez-la depuis l'icône, puis revenez ici."));
+  return box(head("Ne ratez plus une actualité", "Un petit signal sur votre téléphone dès qu'une info importante tombe. Promis, pas de spam.") +
+    `<div class="mt-4 flex gap-2"><button data-act="pushOn" class="flex-1 rounded-2xl py-3.5 text-[16px] font-bold text-white" style="background:${THEME.profile.c}">Activer les notifications</button>${inProfile ? "" : `<button data-act="pushLater" class="rounded-2xl bg-white px-4 py-3.5 font-semibold text-ink-soft">Plus tard</button>`}</div>`);
+}
+
 /* ================= AUTHENTIFICATION ================= */
 function setAuthMode(m) {
   authMode = m;
@@ -383,6 +434,7 @@ async function boot(session) {
   if (isAdmin()) await loadAdmin();
   $("auth").classList.add("hidden"); $("app").classList.remove("hidden");
   render();
+  refreshPush();
 }
 
 /* ================= DONNÉES ================= */
@@ -402,7 +454,7 @@ async function loadAdmin() {
 }
 
 /* ================= FIL D'ACTUALITÉ ================= */
-const blankDraft = () => ({ body: "", link: "", file: null, preview: null, pinned: false });
+const blankDraft = () => ({ body: "", link: "", file: null, preview: null, pinned: false, notify: true });
 S.news.draft = blankDraft();
 async function loadNews() {
   const { data, error } = await sb.from("news").select("*").order("pinned", { ascending: false }).order("created_at", { ascending: false }).limit(S.news.limit + 1);
@@ -476,7 +528,10 @@ function composer() {
         <p class="px-3 py-2 text-[13px] text-ink-soft">${esc(d.file.name)}, ${fmtMB(d.file.size)}</p></div>`
       : `<div id="n-drop" data-act="npick" role="button" tabindex="0" class="mt-2 cursor-pointer rounded-2xl border-2 border-dashed border-line px-4 py-5 text-center text-[15px] text-ink-soft transition hover:border-blue hover:bg-blue-soft">📷 Ajoutez une photo ou une vidéo : glissez-la ici ou touchez<br><span class="text-[13px] text-ink-faint">${MAX_MB} Mo maximum. Vidéo plus lourde : publiez-la sur YouTube et collez le lien.</span></div>`}
     <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
-      <label class="inline-flex cursor-pointer items-center gap-2.5 text-[15px]"><input id="n-pin" type="checkbox" class="cb" ${d.pinned ? "checked" : ""}> Épingler en haut</label>
+      <span class="flex flex-wrap gap-x-5 gap-y-2">
+        <label class="inline-flex cursor-pointer items-center gap-2.5 text-[15px]"><input id="n-pin" type="checkbox" class="cb" ${d.pinned ? "checked" : ""}> Épingler en haut</label>
+        <label class="inline-flex cursor-pointer items-center gap-2.5 text-[15px]"><input id="n-notify" type="checkbox" class="cb" ${d.notify ? "checked" : ""}> 🔔 Prévenir les membres</label>
+      </span>
       <div class="flex gap-2">
         <button data-act="ncancel" class="rounded-2xl bg-paper px-4 py-3 font-semibold">Annuler</button>
         <button data-act="npost" ${S.news.busy ? "disabled" : ""} class="flex items-center gap-2 rounded-2xl px-5 py-3 font-bold text-white disabled:opacity-60" style="background:${THEME.home.c}">${S.news.busy ? spinner("w-5 h-5") + " Envoi…" : "Publier"}</button>
@@ -510,8 +565,14 @@ async function postNews() {
       const up = await sb.storage.from("actus").upload(media_path, d.file, { contentType: d.file.type, upsert: false });
       if (up.error) throw up.error;
     }
-    const { error } = await sb.from("news").insert({ body: body || null, link_url: link, media_path, media_type, pinned: d.pinned, author_id: S.profil.id, author_name: S.profil.full_name || S.profil.email });
+    const { data: created, error } = await sb.from("news").insert({ body: body || null, link_url: link, media_path, media_type, pinned: d.pinned, author_id: S.profil.id, author_name: S.profil.full_name || S.profil.email }).select("id").single();
     if (error) { if (media_path) await sb.storage.from("actus").remove([media_path]); throw error; }
+    if (d.notify && created?.id) {
+      sb.functions.invoke("notify-news", { body: { id: created.id } }).then(({ data, error: fe }) => {
+        if (fe) toast("Actualité publiée, mais les notifications n'ont pas pu partir.", "err");
+        else if (data?.sent) toast(`🔔 Notification envoyée à ${plural(data.sent, "appareil")}.`);
+      });
+    }
     if (d.preview) URL.revokeObjectURL(d.preview);
     S.news.draft = blankDraft(); S.news.composer = false;
     await loadNews();
@@ -657,6 +718,7 @@ function vHome() {
   ${wrap(`
     ${inviteCard()}
     ${installCard()}
+    ${pushCard()}
     ${isAdmin() && np ? `
       <button data-act="go" data-v="admin" data-t="demandes" class="mt-5 flex w-full items-center gap-4 rounded-[22px] bg-white p-5 text-left ring-1 ring-line transition hover:ring-ink">
         <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl font-display text-2xl font-bold text-white" style="background:${THEME.admin.c}">${np}</span>
@@ -784,6 +846,7 @@ function vProfile() {
     </div>
     ${inviteCard()}
     ${installCard(true)}
+    ${pushCard(true)}
     <div class="mt-5 flex items-start gap-4 rounded-[22px] bg-white p-5 text-[15px] leading-relaxed text-ink-soft">
       <span class="text-3xl" aria-hidden="true">🔒</span>
       <span><b class="block text-ink">Documents protégés</b>Les textes se lisent ici et nulle part ailleurs : pas d'impression, pas de téléchargement. Même pas en douce.</span>
@@ -1380,6 +1443,9 @@ document.addEventListener("click", async (e) => {
     case "npick": $("news-file").click(); break;
     case "nunfile": { const d = S.news.draft; if (d.preview) URL.revokeObjectURL(d.preview); d.file = null; d.preview = null; render(true); break; }
     case "npost": if (!S.news.busy) await postNews(); break;
+    case "pushOn": await enablePush(); break;
+    case "pushOff": await disablePush(); break;
+    case "pushLater": try { localStorage.setItem("fo_push_later", "1"); } catch {} render(true); toast("C'est noté. L'option reste disponible dans votre profil."); break;
     case "nmore": S.news.limit += 20; await loadNews(); render(true); break;
     case "npin": {
       const n = S.news.list.find((x) => x.id === id); if (!n) break;
@@ -1484,6 +1550,7 @@ document.addEventListener("change", async (e) => {
   }
   if (t.id === "news-file") { setNewsFile(t.files[0]); t.value = ""; return; }
   if (t.id === "n-pin") { S.news.draft.pinned = t.checked; return; }
+  if (t.id === "n-notify") { S.news.draft.notify = t.checked; return; }
   if (t.dataset.role) {
     const m = S.members.find((x) => x.id === t.dataset.role);
     if (t.value === "gestionnaire" && !(await ask(`Nommer ${m?.full_name || m?.email || "ce membre"} administrateur ? Il pourra publier sur le fil, ajouter des documents et valider les adhésions. Vous restez seul à pouvoir supprimer des documents et changer les rôles.`, "Nommer administrateur"))) { t.value = m?.role || "adherent"; return; }

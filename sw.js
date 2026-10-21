@@ -1,5 +1,5 @@
 /* Service worker : met en cache l'interface (pas les données, pas les PDF). */
-const VERSION = "fo-docs-v5";
+const VERSION = "fo-docs-v6";
 const SHELL = ["/", "/manifest.json", "/logo-fo.png", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
 const CDN = ["cdn.tailwindcss.com", "cdn.jsdelivr.net", "cdnjs.cloudflare.com", "fonts.googleapis.com", "fonts.gstatic.com"];
 
@@ -45,4 +45,26 @@ self.addEventListener("fetch", (e) => {
       })
     );
   }
+});
+
+/* Notifications : affichage et ouverture de l'application au toucher */
+self.addEventListener("push", (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data ? e.data.text() : "" }; }
+  e.waitUntil(self.registration.showNotification(d.title || "FO France Travail NAQ", {
+    body: d.body || "Nouvelle actualité sur le fil",
+    icon: "/icons/icon-192.png",
+    data: { url: d.url || "/" },
+    tag: "fo-actu",
+    renotify: true,
+  }));
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = new URL(e.notification.data?.url || "/", self.location.origin).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+    for (const w of wins) if (w.url.startsWith(self.location.origin) && "focus" in w) return w.focus();
+    return self.clients.openWindow(url);
+  }));
 });
