@@ -1,5 +1,5 @@
 /* Service worker : met en cache l'interface (pas les données, pas les PDF). */
-const VERSION = "fo-docs-v6";
+const VERSION = "fo-docs-v7";
 const SHELL = ["/", "/manifest.json", "/logo-fo.png", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
 const CDN = ["cdn.tailwindcss.com", "cdn.jsdelivr.net", "cdnjs.cloudflare.com", "fonts.googleapis.com", "fonts.gstatic.com"];
 

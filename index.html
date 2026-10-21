@@ -496,7 +496,7 @@ function linkCard(u) {
     <span class="min-w-0"><b class="block truncate text-[15px]">${esc(host)}</b><span class="block truncate text-[13px] text-ink-soft">${esc(u)}</span></span></a>`;
 }
 function newsCard(n) {
-  const can = isOwner() || (isStaff() && n.author_id === S.profil.id);
+  const can = isStaff();
   const url = n.media_path ? S.news.urls[n.media_path] : null, emb = n.link_url ? embedOf(n.link_url) : null;
   return `<article class="overflow-hidden rounded-[22px] bg-white shadow-[0_1px_0_#DCE0E6,0_6px_18px_-10px_rgba(28,36,48,.25)] ${n.pinned ? "ring-2 ring-amber-300" : ""}">
     <header class="flex items-center gap-3 px-4 pt-4">
@@ -857,11 +857,11 @@ function vProfile() {
 
 /* ================= GESTION ADMIN ================= */
 function vAdmin() {
-  const tabs = [["demandes", "Demandes", pending().length], ...(isOwner() ? [["membres", "Membres", 0]] : []), ["documents", "Documents", 0]];
+  const tabs = [["demandes", "Demandes", pending().length], ["membres", "Membres", 0], ["documents", "Documents", 0]];
   return `
-  ${pageHead("Gestion", isOwner() ? "La salle des machines : adhésions, membres et publication." : "Adhésions et publication des documents.")}
+  ${pageHead("Gestion", "La salle des machines : adhésions, membres et publication.")}
   <div class="sticky top-0 z-20 border-b border-line bg-paper/95 backdrop-blur">
-    <div class="mx-auto grid max-w-2xl ${isOwner() ? "grid-cols-3" : "grid-cols-2"} gap-1 px-4 py-3" role="tablist">
+    <div class="mx-auto grid max-w-2xl grid-cols-3 gap-1 px-4 py-3" role="tablist">
       ${tabs.map(([id, l, n]) => `<button data-act="atab" data-t="${id}" class="relative rounded-2xl py-3 text-[15px] font-semibold transition ${S.adminTab === id ? "text-white shadow" : "text-ink-soft hover:bg-white"}" ${S.adminTab === id ? `style="background:${THEME.admin.c}"` : ""}>${l}${n ? ` <span class="ml-1 rounded-full bg-fo px-1.5 py-0.5 text-[12px] text-white">${n}</span>` : ""}</button>`).join("")}
     </div>
   </div>
@@ -869,7 +869,6 @@ function vAdmin() {
 }
 function renderAdmin() {
   const b = $("admin-body"); if (!b) return;
-  if (S.adminTab === "membres" && !isOwner()) S.adminTab = "demandes";
   b.innerHTML = { demandes: aDemandes, membres: aMembres, documents: aDocuments }[S.adminTab]();
 }
 const avatar = (u, cls = "bg-paper text-ink-soft") => `<span class="grid h-11 w-11 shrink-0 place-items-center rounded-full ${cls} text-[15px] font-bold">${esc(initials(u.full_name, u.email))}</span>`;
@@ -904,7 +903,7 @@ function aMembres() {
   <div class="mb-4 grid grid-cols-3 gap-2">
     ${[["adherent", "Adhérents", THEME.library], ["invite", "Invités", THEME.profile], ["admin", "Admins", THEME.admin]].map(([r, l, th]) => `<div class="rounded-[18px] p-4" style="background:${th.bg}"><b class="block font-display text-[34px] leading-none" style="color:${th.c}">${c(r)}</b><span class="text-[14px] text-ink-soft">${l}</span></div>`).join("")}
   </div>
-  <p class="mb-4 rounded-[18px] bg-white p-4 text-[15px] leading-relaxed text-ink-soft"><b class="text-ink">Administrateurs</b> : ils publient sur le fil, ajoutent et modifient des documents et valident les adhésions. Vous seul pouvez supprimer des documents et changer les rôles.</p>
+  <p class="mb-4 rounded-[18px] bg-white p-4 text-[15px] leading-relaxed text-ink-soft"><b class="text-ink">Administrateurs</b> : ils gèrent le fil, les documents, les adhésions et les rôles des membres. ${isOwner() ? "Vous seul pouvez supprimer des documents, et personne ne peut modifier votre compte." : "Seul l'administrateur principal peut supprimer des documents ; son compte ne peut pas être modifié."}</p>
   <label class="flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 ring-2 ring-transparent focus-within:ring-blue">${ic("search", "w-5 h-5 text-ink-faint")}<input id="mq" type="search" value="${esc(S.memberQ)}" placeholder="Rechercher un nom ou un email" class="min-w-0 flex-1 bg-transparent text-[16px] outline-none"></label>
   <ul class="mt-3 space-y-2">${list.map((m) => `<li class="flex items-center gap-3 rounded-[18px] bg-white p-3.5">
      ${avatar(m, m.role === "admin" ? "bg-ink text-white" : m.role === "gestionnaire" ? "bg-violet-100 text-violet-800" : m.role === "adherent" ? "bg-emerald-100 text-emerald-800" : "bg-paper text-ink-soft")}
@@ -1553,7 +1552,7 @@ document.addEventListener("change", async (e) => {
   if (t.id === "n-notify") { S.news.draft.notify = t.checked; return; }
   if (t.dataset.role) {
     const m = S.members.find((x) => x.id === t.dataset.role);
-    if (t.value === "gestionnaire" && !(await ask(`Nommer ${m?.full_name || m?.email || "ce membre"} administrateur ? Il pourra publier sur le fil, ajouter des documents et valider les adhésions. Vous restez seul à pouvoir supprimer des documents et changer les rôles.`, "Nommer administrateur"))) { t.value = m?.role || "adherent"; return; }
+    if (t.value === "gestionnaire" && !(await ask(`Nommer ${m?.full_name || m?.email || "ce membre"} administrateur ? Il pourra gérer le fil, les documents, les adhésions et les rôles des membres. Seul l'administrateur principal peut supprimer des documents.`, "Nommer administrateur"))) { t.value = m?.role || "adherent"; return; }
     const { error } = await sb.from("profiles").update({ role: t.value, requested_adherent: false }).eq("id", t.dataset.role);
     if (error) { t.value = m?.role || "adherent"; return toast(/gestionnaire/.test(error.message || "") ? "Le rôle Administrateur n'est pas encore activé : exécutez le script SQL v7." : errMsg(error), "err"); }
     await loadAdmin(); renderNav(); renderAdmin(); toast(`Statut modifié : ${ROLES[t.value]}`);
