@@ -1,6 +1,6 @@
 /* Service worker : met en cache l'interface (pas les données, pas les PDF). */
-const VERSION = "fo-docs-v2";
-const SHELL = ["/", "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
+const VERSION = "fo-docs-v3";
+const SHELL = ["/", "/manifest.json", "/logo-fo.png", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png"];
 const CDN = ["cdn.tailwindcss.com", "cdn.jsdelivr.net", "cdnjs.cloudflare.com", "fonts.googleapis.com", "fonts.gstatic.com"];
 
 self.addEventListener("install", (e) => {
