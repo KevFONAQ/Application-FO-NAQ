@@ -986,21 +986,75 @@ function udCard(u) {
     </div>
   </article>`;
 }
-function vContacts() {
+/* Élus et délégués FO France Travail Nouvelle-Aquitaine (source : carte « Vos représentants FO ») */
+const REPS = [
+  { deps: ["16", "17", "79", "86"], names: "Charente, Charente-Maritime, Deux-Sèvres, Vienne", people: [
+    { name: "Patrick CADEVILLE", tel: "06 60 05 51 29", roles: ["Délégué syndical"] },
+    { name: "Gaëlle LHUISSIER", tel: "06 60 33 62 27", roles: ["Élue titulaire au CSE", "Secrétaire adjointe du CSE", "Commission économique", "Commission politique et sociale"] },
+    { name: "Agnès PANNETIER", tel: "06 16 54 50 65", roles: ["Élue suppléante au CSE", "Commission aide et secours"] },
+    { name: "Sandrine SCHWARZ", tel: "06 79 42 97 51", roles: ["Déléguée syndicale"] },
+  ] },
+  { deps: ["19", "24"], names: "Corrèze, Dordogne", people: [
+    { name: "Cathy CHESNEAU", tel: "06 81 11 28 70", roles: ["RP DTD Vézère et Corrèze"] },
+    { name: "Fabrice FEUGEAS", tel: "06 09 96 82 21", roles: ["Élu suppléant au CSE"] },
+    { name: "Yves MASSINES", tel: "06 20 00 64 77", roles: ["Élu suppléant au CSE"] },
+    { name: "Marie RIOUX", tel: "06 72 24 08 86", roles: ["Déléguée syndicale", "Élue titulaire au CSE", "Commission ASC"] },
+    { name: "Anne SIRIEX", tel: "06 82 08 84 23", roles: ["Commission ASC"] },
+  ] },
+  { deps: ["23", "87"], names: "Creuse, Haute-Vienne", people: [
+    { name: "Christelle BOISSIERE", tel: "06 09 01 56 02", roles: ["Déléguée syndicale"] },
+    { name: "Sylvie DUPONTEIL", tel: "06 81 73 70 17", roles: ["RP DTD Creuse / Haute-Vienne", "Équipe DT Creuse / Haute-Vienne"] },
+  ] },
+  { deps: ["33", "47"], names: "Gironde, Lot-et-Garonne", people: [
+    { name: "Dalhila BENFAKIR", tel: "06 44 32 65 55", roles: ["RP DTD Lot-et-Garonne"] },
+    { name: "Sonia DERGHBOUDJ", tel: "07 82 81 71 13", roles: ["Déléguée syndicale", "RS au CSE", "Commission politique et sociale"] },
+    { name: "Manuel DE SOUSA", tel: "06 18 94 12 50", roles: ["RP DTD Bordeaux Estuaire", "Équipe DT Gironde"] },
+    { name: "Kevin PALACIOS", tel: "06 14 91 45 76", roles: ["Élu titulaire au CSE", "Membre du C2SCT", "Commission des marchés"] },
+  ] },
+  { deps: ["40", "64"], names: "Landes, Pyrénées-Atlantiques", people: [
+    { name: "Pierre BERGEZ", tel: "06 64 26 82 32", roles: ["Délégué syndical"] },
+    { name: "Valérie CARVALHO", tel: "06 01 22 80 70", roles: ["RP DTD Béarn", "CRE Pau", "Plateforme Sud", "Équipe DT Pyrénées-Atlantiques"] },
+  ] },
+];
+const repText = (g, r) => `${g.deps.join(" ")} ${g.names} ${r.name} ${r.roles.join(" ")}`;
+function repGroup(g, q) {
+  const th = THEME.contacts;
+  const people = g.people.filter((r) => !q || norm(repText(g, r)).includes(q));
+  if (!people.length) return "";
+  return `<section class="overflow-hidden rounded-[20px] bg-white shadow-[0_1px_0_#DCE0E6,0_6px_18px_-10px_rgba(28,36,48,.25)]">
+    <header class="flex flex-wrap items-center gap-2 px-4 pt-4">
+      ${g.deps.map((d) => `<span class="grid h-9 min-w-[36px] place-items-center rounded-xl px-1.5 font-display text-[17px] font-bold text-white" style="background:${th.c}">${d}</span>`).join("")}
+      <span class="ml-1 text-[15px] font-semibold text-ink-soft">${esc(g.names)}</span>
+    </header>
+    <ul class="divide-y divide-line px-4 pb-1 pt-2">${people.map((r) => `<li class="flex items-center gap-3 py-3">
+      <span class="min-w-0 flex-1"><b class="block text-[16px]">${esc(r.name)}</b>
+        <span class="mt-1 flex flex-wrap gap-1">${r.roles.map((x) => `<span class="rounded-full px-2 py-0.5 text-[12px] font-semibold" style="background:${th.bg};color:${th.c}">${esc(x)}</span>`).join("")}</span></span>
+      <a href="${telHref(r.tel)}" class="flex shrink-0 items-center gap-1.5 rounded-2xl px-3 py-2.5 text-[14px] font-bold text-white" style="background:${th.c}" aria-label="Appeler ${esc(r.name)} au ${esc(r.tel)}">📞 <span class="hidden sm:inline">${esc(r.tel)}</span><span class="sm:hidden">Appeler</span></a>
+    </li>`).join("")}</ul>
+  </section>`;
+}
+function contactsBody() {
   const q = norm(S.udQ).trim();
-  const list = UDS.filter((u) => !q || norm(`${u.n} ${u.dep} ${u.city} ${u.addr.join(" ")}`).includes(q));
-  return `${pageHead("Coordonnées", "Les unions départementales FO de Nouvelle-Aquitaine. Un appel, un mail, on vous répond.", "contacts")}
+  const dep = /^\d{2}$/.test(q) ? q : null;   // « 33 » = numéro de département, pas un numéro de rue
+  const reps = REPS.map((g) => (dep ? (g.deps.includes(dep) ? repGroup(g, "") : "") : repGroup(g, q))).join("");
+  const uds = UDS.filter((u) => (dep ? u.n === dep : !q || norm(`${u.n} ${u.dep} ${u.city} ${u.addr.join(" ")}`).includes(q))).map(udCard).join("");
+  if (!reps && !uds) return empty("Personne ne correspond à cette recherche.", "Essayez un numéro de département, une ville ou un nom.", "🗺️");
+  return `${reps ? `${sectionTitle("Vos représentants FO France Travail")}<p class="-mt-1 mb-3 text-[15px] text-ink-soft">Élus au CSE, délégués syndicaux et représentants de proximité, par département.</p><div class="space-y-3">${reps}</div>` : ""}
+    ${uds ? `${sectionTitle("Les unions départementales FO")}<div class="space-y-3">${uds}</div>` : ""}`;
+}
+function vContacts() {
+  return `${pageHead("Coordonnées", "Vos représentants et les unions départementales FO de Nouvelle-Aquitaine. Un appel, un mail, on vous répond.", "contacts")}
   ${wrap(`
     <label class="mt-5 flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-sm ring-2 ring-transparent focus-within:ring-blue">
-      ${ic("search", "w-5 h-5 text-ink-faint")}<input id="udq" type="search" value="${esc(S.udQ)}" placeholder="Département, numéro ou ville (ex : 33, Limoges)" class="min-w-0 flex-1 bg-transparent text-[16px] outline-none" autocomplete="off">
+      ${ic("search", "w-5 h-5 text-ink-faint")}<input id="udq" type="search" value="${esc(S.udQ)}" placeholder="Département, ville ou nom (ex : 33, Limoges, CSE)" class="min-w-0 flex-1 bg-transparent text-[16px] outline-none" autocomplete="off">
     </label>
-    <div id="ud-list" class="mt-4 space-y-3">${list.map(udCard).join("") || empty("Aucune union départementale ne correspond.", "Essayez un numéro de département (16 à 87) ou un nom de ville.", "🗺️")}</div>
-    <p class="mt-6 text-[13px] text-ink-faint">Coordonnées issues des sites Force Ouvrière, vérifiées en novembre 2026.</p>
+    <div id="ud-list" class="mt-2">${contactsBody()}</div>
+    <p class="mt-6 text-[13px] text-ink-faint">Unions départementales : sites Force Ouvrière, vérifiés en novembre 2026. Représentants : carte « Vos représentants FO » Nouvelle-Aquitaine.</p>
   `, "pb-6")}`;
 }
-const contactsLink = (label = "Coordonnées des unions départementales") => `<button data-act="go" data-v="contacts" class="mt-5 flex w-full items-center gap-4 rounded-[22px] bg-white p-5 text-left ring-1 ring-line transition hover:ring-ink">
+const contactsLink = (label = "Coordonnées : représentants et UD") => `<button data-act="go" data-v="contacts" class="mt-5 flex w-full items-center gap-4 rounded-[22px] bg-white p-5 text-left ring-1 ring-line transition hover:ring-ink">
   <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-2xl" style="background:${THEME.contacts.bg}" aria-hidden="true">📍</span>
-  <span class="flex-1"><b class="block text-[17px]">${label}</b><span class="text-[15px] text-ink-soft">Adresses et téléphones des 12 UD FO de la région</span></span>
+  <span class="flex-1"><b class="block text-[17px]">${label}</b><span class="text-[15px] text-ink-soft">Vos élus et délégués, et les 12 unions départementales</span></span>
   ${ic("chevron", "w-5 h-5 text-ink-faint")}</button>`;
 
 /* ================= RENDU ================= */
@@ -2051,12 +2105,7 @@ document.addEventListener("change", async (e) => {
 document.addEventListener("input", (e) => {
   const t = e.target;
   if (t.id === "q") { S.q = t.value; scheduleHits(); renderLibList(); return; }
-  if (t.id === "udq") {
-    S.udQ = t.value; const q = norm(t.value).trim();
-    const list = UDS.filter((u) => !q || norm(`${u.n} ${u.dep} ${u.city} ${u.addr.join(" ")}`).includes(q));
-    $("ud-list").innerHTML = list.map(udCard).join("") || empty("Aucune union départementale ne correspond.", "Essayez un numéro de département (16 à 87) ou un nom de ville.", "🗺️");
-    return;
-  }
+  if (t.id === "udq") { S.udQ = t.value; $("ud-list").innerHTML = contactsBody(); return; }
   if (t.id === "v-q") { clearTimeout(findTimer); const v = t.value; findTimer = setTimeout(() => runFind(v), 400); return; }
   if (t.id === "mq") { S.memberQ = t.value; const pos = t.selectionStart; renderAdmin(); const n = $("mq"); n.focus(); n.setSelectionRange(pos, pos); return; }
   if (t.id === "n-body") { S.news.draft.body = t.value; return; }
