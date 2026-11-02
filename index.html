@@ -118,7 +118,7 @@
         <label class="block"><span class="mb-1.5 block text-sm font-semibold text-ink-soft">Mot de passe <span class="font-normal text-ink-faint">(6 caractères minimum)</span></span>
           <input name="password" type="password" minlength="6" required autocomplete="new-password" class="w-full rounded-2xl border-2 border-line bg-white px-4 py-3.5 text-[16px] outline-none transition focus:border-blue"></label>
         <button class="w-full rounded-2xl bg-ink py-4 text-[17px] font-bold text-white transition hover:bg-black active:scale-[.99]">Créer mon compte</button>
-        <p class="text-center text-sm text-ink-soft">Vous accédez d'abord à des documents de découverte. La région valide ensuite votre adhésion.</p>
+        <p class="text-center text-sm text-ink-soft">Vous accédez d'abord aux documents accessibles aux abonnés. La région valide ensuite votre adhésion.</p>
       </form>
     </div>
   </div>
@@ -1161,7 +1161,7 @@ function docCard(d, compact = false) {
         ${!compact && (d.keywords || []).length ? `<span class="mt-3 flex flex-wrap gap-1.5">${d.keywords.slice(0, 4).map((k) => `<span class="rounded-full bg-paper px-2.5 py-1 text-[13px] text-ink-soft">${esc(k)}</span>`).join("")}</span>` : ""}
       </span>
       <span class="mt-1 flex shrink-0 flex-col items-end gap-2">
-        ${d.is_public ? `<span class="rounded-full bg-sky-50 px-2.5 py-1 text-[12px] font-semibold text-sky-700 ring-1 ring-sky-200">Découverte</span>` : ""}
+        ${d.is_public ? `<span class="rounded-full bg-sky-50 px-2.5 py-1 text-[12px] font-semibold text-sky-700 ring-1 ring-sky-200">Accessible aux abonnés</span>` : ""}
         ${KIND[kindOf(d.storage_path)] ? `<span class="rounded-md px-2 py-0.5 text-[12px] font-bold text-white" style="background:${KIND[kindOf(d.storage_path)].c}">${KIND[kindOf(d.storage_path)].label}</span>` : ""}
         <span class="grid h-9 w-9 place-items-center rounded-full transition group-hover:scale-110" style="background:${tint(col)};color:${col}">${ic("chevron", "w-4 h-4")}</span>
       </span>
@@ -1208,7 +1208,7 @@ function inviteCard() {
     <div class="relative mt-5 overflow-hidden rounded-[22px] p-5" style="background:#FFF4D6">${deco("#B7791F")}
       <div class="relative flex items-start gap-4">
         <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-2xl" aria-hidden="true">🔑</span>
-        <span><b class="block text-[17px]">Le reste de la bibliothèque est derrière cette porte</b><span class="text-[15px] text-ink-soft">La clé : votre adhésion FO. En attendant, des documents de découverte vous sont ouverts.</span></span>
+        <span><b class="block text-[17px]">Le reste de la bibliothèque est derrière cette porte</b><span class="text-[15px] text-ink-soft">La clé : votre adhésion FO. En attendant, certains documents vous sont déjà accessibles.</span></span>
       </div>
       <button data-act="request" class="relative mt-5 w-full rounded-2xl bg-ink py-4 text-[17px] font-bold text-white transition hover:bg-black">Demander mon accès adhérent</button>
       <a href="${joinMailto()}" class="relative mt-2 block w-full rounded-2xl bg-white py-3.5 text-center text-[16px] font-semibold text-ink">✉️ Pas encore adhérent ? Écrivez au syndicat</a>
@@ -1236,7 +1236,7 @@ function vHome() {
         ${ic("search", "w-6 h-6 text-ink-soft")}<span class="text-[17px] text-ink-faint">Congés, délégation, L2315-7…</span>
       </button>
       ${kws.length ? `<div class="no-sb -mx-4 mt-4 flex gap-2 overflow-x-auto px-4">${kws.map((k, i) => { const c = SHELF[i % SHELF.length]; return `<button data-act="kw" data-k="${esc(k)}" class="shrink-0 rounded-full px-4 py-2 text-[15px] font-semibold transition hover:-translate-y-0.5" style="background:#fff;color:${c};box-shadow:inset 0 0 0 2px ${tint(c, "55")}">${esc(k)}</button>`; }).join("")}</div>` : ""}`
-      : `<p class="mt-4 max-w-sm text-[17px] text-ink-soft">Consultez les documents de découverte ci-dessous, puis demandez votre accès adhérent.</p>`}
+      : `<p class="mt-4 max-w-sm text-[17px] text-ink-soft">Consultez les documents qui vous sont accessibles ci-dessous, puis demandez votre accès adhérent.</p>`}
     </div>
   </section>
 
@@ -1279,7 +1279,7 @@ function vHome() {
 
     ${recent.length ? `${sectionTitle("Repris récemment")}<div class="space-y-3">${recent.map((d) => docCard(d, true)).join("")}</div>` : ""}
 
-    ${sectionTitle(full ? "Derniers ajouts" : "Documents de découverte", full && S.docs.length > 3 ? `<button data-act="go" data-v="library" class="text-[15px] font-semibold text-blue underline-offset-4 hover:underline">Tous les textes</button>` : "")}
+    ${sectionTitle(full ? "Derniers ajouts" : "Vos documents accessibles", full && S.docs.length > 3 ? `<button data-act="go" data-v="library" class="text-[15px] font-semibold text-blue underline-offset-4 hover:underline">Tous les textes</button>` : "")}
     <div class="space-y-3">${(full ? newest : S.docs).map((d) => docCard(d)).join("") || empty("Les étagères sont encore vides.", "Elles se rempliront bientôt de bonnes lectures.", "🪴")}</div>
   `)}`;
 }
@@ -1501,7 +1501,7 @@ function queueCard(q, i) {
       ${field("Mots-clés, séparés par des virgules", `<input data-q="${i}" data-f="keywords" value="${esc(q.keywords)}" placeholder="congés, formation" class="${inp}">`)}
       <div class="sm:col-span-2">${field("Description courte", `<textarea data-q="${i}" data-f="description" rows="2" class="${inp}">${esc(q.description)}</textarea>`)}</div>
     </div>
-    <label class="mt-4 flex cursor-pointer items-center gap-3 text-[15px]"><input type="checkbox" class="cb" data-q="${i}" data-f="is_public" ${q.is_public ? "checked" : ""}> Document de découverte (visible par les abonnés)</label>
+    <label class="mt-4 flex cursor-pointer items-center gap-3 text-[15px]"><input type="checkbox" class="cb" data-q="${i}" data-f="is_public" ${q.is_public ? "checked" : ""}> Rendre accessible aux abonnés</label>
   </div>`;
 }
 
@@ -1530,7 +1530,7 @@ function docRow(d) {
       <button data-act="edit" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-paper" aria-label="Modifier">${ic("pencil", "w-5 h-5")}</button>
       ${isOwner() ? `<button data-act="del" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-fo-soft hover:text-fo" aria-label="Supprimer">${ic("trash", "w-5 h-5")}</button>` : ""}
     </div>
-    <label class="mt-2 inline-flex cursor-pointer items-center gap-2.5 text-[14px] text-ink-soft"><input type="checkbox" class="cb !h-5 !w-5" data-pub="${d.id}" ${d.is_public ? "checked" : ""}> Document de découverte</label>
+    <label class="mt-2 inline-flex cursor-pointer items-center gap-2.5 text-[14px] text-ink-soft"><input type="checkbox" class="cb !h-5 !w-5" data-pub="${d.id}" ${d.is_public ? "checked" : ""}> Rendre accessible aux abonnés</label>
     ${missing ? "" : indexLine(d)}
   </li>`;
 }
@@ -2102,7 +2102,7 @@ document.addEventListener("change", async (e) => {
   if (t.dataset.pub) {
     const err = await setPublic(t.dataset.pub, t.checked);
     if (err) { toast(errMsg(err), "err"); t.checked = !t.checked; return; }
-    await loadDocs(); renderAdmin(); toast(t.checked ? "Document de découverte défini" : "Document réservé aux adhérents");
+    await loadDocs(); renderAdmin(); toast(t.checked ? "Document accessible aux abonnés" : "Document réservé aux adhérents");
     return;
   }
   if (t.id === "news-file") { setNewsFile(t.files[0]); t.value = ""; return; }
