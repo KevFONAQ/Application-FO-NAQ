@@ -101,6 +101,14 @@
         <label class="block"><span class="mb-1.5 block text-sm font-semibold text-ink-soft">Mot de passe</span>
           <input name="password" type="password" required autocomplete="current-password" class="w-full rounded-2xl border-2 border-line bg-white px-4 py-3.5 text-[16px] outline-none transition focus:border-blue"></label>
         <button class="w-full rounded-2xl bg-ink py-4 text-[17px] font-bold text-white transition hover:bg-black active:scale-[.99]">Se connecter</button>
+        <button type="button" data-act="forgot" class="block w-full py-1 text-center text-[15px] font-semibold text-blue underline-offset-4 hover:underline">Mot de passe oublié ?</button>
+      </form>
+      <form id="f-reset" class="mt-6 hidden space-y-4">
+        <p class="text-[15px] text-ink-soft">Indiquez l'adresse email de votre compte : vous recevrez un lien pour choisir un nouveau mot de passe.</p>
+        <label class="block"><span class="mb-1.5 block text-sm font-semibold text-ink-soft">Adresse email</span>
+          <input name="email" type="email" required autocomplete="email" class="w-full rounded-2xl border-2 border-line bg-white px-4 py-3.5 text-[16px] outline-none transition focus:border-blue"></label>
+        <button class="w-full rounded-2xl bg-ink py-4 text-[17px] font-bold text-white transition hover:bg-black active:scale-[.99]">Recevoir le lien</button>
+        <button type="button" data-act="authmode" data-m="login" class="block w-full py-1 text-center text-[15px] font-semibold text-ink-soft hover:text-ink">← Retour à la connexion</button>
       </form>
       <form id="f-signup" class="mt-6 hidden space-y-4">
         <label class="block"><span class="mb-1.5 block text-sm font-semibold text-ink-soft">Prénom et nom</span>
@@ -158,6 +166,16 @@
 </div>
 
 <!-- ================= CONFIRMATION + NOTIFICATIONS ================= -->
+<div id="recovery" class="fixed inset-0 z-[65] hidden items-end justify-center bg-ink/50 sm:items-center sm:p-6">
+  <form id="f-newpass" class="sheet w-full max-w-sm space-y-4 rounded-t-[28px] bg-white p-6 sm:rounded-[28px]" style="padding-bottom:max(24px,env(safe-area-inset-bottom))">
+    <p class="text-[19px] font-bold">Choisissez un nouveau mot de passe</p>
+    <label class="block"><span class="mb-1.5 block text-sm font-semibold text-ink-soft">Nouveau mot de passe <span class="font-normal text-ink-faint">(6 caractères minimum)</span></span>
+      <input name="p1" type="password" minlength="6" required autocomplete="new-password" class="w-full rounded-2xl border-2 border-line bg-white px-4 py-3.5 text-[16px] outline-none transition focus:border-blue"></label>
+    <label class="block"><span class="mb-1.5 block text-sm font-semibold text-ink-soft">Confirmez-le</span>
+      <input name="p2" type="password" minlength="6" required autocomplete="new-password" class="w-full rounded-2xl border-2 border-line bg-white px-4 py-3.5 text-[16px] outline-none transition focus:border-blue"></label>
+    <button class="w-full rounded-2xl bg-ink py-4 text-[17px] font-bold text-white transition hover:bg-black active:scale-[.99]">Enregistrer le mot de passe</button>
+  </form>
+</div>
 <div id="modal" class="fixed inset-0 z-[60] hidden items-end justify-center bg-ink/50 sm:items-center sm:p-6">
   <div class="sheet w-full max-w-sm rounded-t-[28px] bg-white p-6 sm:rounded-[28px]" style="padding-bottom:max(24px,env(safe-area-inset-bottom))">
     <p id="modal-msg" class="text-[17px] leading-snug"></p>
@@ -198,7 +216,7 @@ const fmtMB = (b) => (b / 1048576).toFixed(1).replace(".", ",") + " Mo";
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "";
 const plural = (n, s, p) => `${n} ${n > 1 ? (p || s + "s") : s}`;
 const initials = (n, e) => ((n || e || "?").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("") || "?").toUpperCase();
-const ROLES = { invite: "Invité", adherent: "Adhérent", gestionnaire: "Administrateur", admin: "Administrateur principal" };
+const ROLES = { invite: "Abonné", adherent: "Adhérent", gestionnaire: "Administrateur", admin: "Administrateur principal" };
 const NONE = "__none";
 
 /* Couleur stable par catégorie : chaque rayon garde sa couleur */
@@ -251,8 +269,15 @@ const FR_ERR = {
   "Invalid login credentials": "Email ou mot de passe incorrect.",
   "Email not confirmed": "Email non confirmé. Cliquez sur le lien reçu par email, puis reconnectez-vous.",
   "User already registered": "Un compte existe déjà avec cet email. Connectez-vous.",
+  "New password should be different from the old password.": "Le nouveau mot de passe doit être différent de l'ancien.",
+  "Email rate limit exceeded": "Trop de demandes envoyées. Réessayez dans une heure.",
 };
-const errMsg = (e) => FR_ERR[e?.message] || e?.message || String(e);
+const errMsg = (e) => {
+  const m = e?.message || String(e);
+  if (/only request this after (\d+) seconds/i.test(m)) return `Patientez ${m.match(/after (\d+) seconds/i)[1]} secondes avant de redemander un lien.`;
+  if (/rate limit/i.test(m)) return "Trop de demandes envoyées. Réessayez un peu plus tard.";
+  return FR_ERR[m] || m;
+};
 
 /* ================= ÉTAT ================= */
 const S = {
@@ -396,6 +421,7 @@ function setAuthMode(m) {
   $("m-login").className = `rounded-xl py-3 ${m === "login" ? on : off}`;
   $("m-signup").className = `rounded-xl py-3 ${m === "signup" ? on : off}`;
   $("f-login").classList.toggle("hidden", m !== "login");
+  $("f-reset").classList.toggle("hidden", m !== "reset");
   $("f-signup").classList.toggle("hidden", m !== "signup");
 }
 function showAuth() { $("app").classList.add("hidden"); $("auth").classList.remove("hidden"); setAuthMode(authMode); }
@@ -423,7 +449,32 @@ $("f-signup").onsubmit = (e) => {
   });
 };
 
-sb.auth.onAuthStateChange((_ev, session) => {
+/* Mot de passe oublié */
+$("f-reset").onsubmit = (e) => {
+  e.preventDefault();
+  const email = new FormData(e.target).get("email");
+  withBusy(e.target.querySelector("button"), "Envoi…", async () => {
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + "/" });
+    if (error) return toast(errMsg(error), "err");
+    toast("Si un compte existe avec cette adresse, un lien vient de partir. Pensez à vérifier les courriers indésirables.");
+    setAuthMode("login");
+  });
+};
+const showRecovery = () => { $("recovery").classList.remove("hidden"); $("recovery").classList.add("flex"); setTimeout(() => $("f-newpass").p1.focus(), 50); };
+$("f-newpass").onsubmit = (e) => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  if (f.get("p1") !== f.get("p2")) return toast("Les deux mots de passe ne sont pas identiques.", "err");
+  withBusy(e.target.querySelector("button"), "Enregistrement…", async () => {
+    const { error } = await sb.auth.updateUser({ password: f.get("p1") });
+    if (error) return toast(errMsg(error), "err");
+    $("recovery").classList.add("hidden"); $("recovery").classList.remove("flex"); e.target.reset();
+    toast("Mot de passe modifié. Vous êtes connecté.");
+  });
+};
+
+sb.auth.onAuthStateChange((ev, session) => {
+  if (ev === "PASSWORD_RECOVERY") setTimeout(showRecovery, 0);
   if (!session) { S.profil = null; loadedFor = null; showAuth(); return; }
   if (loadedFor === session.user.id) return;
   loadedFor = session.user.id;
@@ -1218,9 +1269,9 @@ function aMembres() {
   const c = (r) => S.members.filter((m) => (r === "admin" ? ["admin", "gestionnaire"].includes(m.role) : m.role === r)).length;
   return `
   <div class="mb-4 grid grid-cols-3 gap-2">
-    ${[["adherent", "Adhérents", THEME.library], ["invite", "Invités", THEME.profile], ["admin", "Admins", THEME.admin]].map(([r, l, th]) => `<div class="rounded-[18px] p-4" style="background:${th.bg}"><b class="block font-display text-[34px] leading-none" style="color:${th.c}">${c(r)}</b><span class="text-[14px] text-ink-soft">${l}</span></div>`).join("")}
+    ${[["adherent", "Adhérents", THEME.library], ["invite", "Abonnés", THEME.profile], ["admin", "Admins", THEME.admin]].map(([r, l, th]) => `<div class="rounded-[18px] p-4" style="background:${th.bg}"><b class="block font-display text-[34px] leading-none" style="color:${th.c}">${c(r)}</b><span class="text-[14px] text-ink-soft">${l}</span></div>`).join("")}
   </div>
-  <p class="mb-4 rounded-[18px] bg-white p-4 text-[15px] leading-relaxed text-ink-soft"><b class="text-ink">Administrateurs</b> : ils gèrent le fil, les documents, les adhésions et passent les membres d'invité à adhérent (ou l'inverse). ${isOwner() ? "Vous seul nommez ou retirez les administrateurs et pouvez supprimer des documents ; personne ne peut modifier votre compte." : "Seul l'administrateur principal nomme ou retire les administrateurs et peut supprimer des documents."}</p>
+  <p class="mb-4 rounded-[18px] bg-white p-4 text-[15px] leading-relaxed text-ink-soft"><b class="text-ink">Administrateurs</b> : ils gèrent le fil, les documents, les adhésions et passent les membres d'abonné à adhérent (ou l'inverse). ${isOwner() ? "Vous seul nommez ou retirez les administrateurs et pouvez supprimer des documents ; personne ne peut modifier votre compte." : "Seul l'administrateur principal nomme ou retire les administrateurs et peut supprimer des documents."}</p>
   <label class="flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 ring-2 ring-transparent focus-within:ring-blue">${ic("search", "w-5 h-5 text-ink-faint")}<input id="mq" type="search" value="${esc(S.memberQ)}" placeholder="Rechercher un nom ou un email" class="min-w-0 flex-1 bg-transparent text-[16px] outline-none"></label>
   <ul class="mt-3 space-y-2">${list.map((m) => `<li class="flex items-center gap-3 rounded-[18px] bg-white p-3.5">
      ${avatar(m, m.role === "admin" ? "bg-ink text-white" : m.role === "gestionnaire" ? "bg-violet-100 text-violet-800" : m.role === "adherent" ? "bg-emerald-100 text-emerald-800" : "bg-paper text-ink-soft")}
@@ -1228,7 +1279,7 @@ function aMembres() {
     ${m.role === "admin" ? `<span class="rounded-full bg-ink px-3 py-1.5 text-[13px] font-semibold text-white">Principal</span>`
       : m.role === "gestionnaire" && !isOwner() ? `<span class="rounded-full bg-violet-100 px-3 py-1.5 text-[13px] font-semibold text-violet-800">Administrateur</span>`
       : `<select data-role="${m.id}" aria-label="Statut de ${esc(m.full_name || m.email)}" class="rounded-xl border-2 border-line bg-white px-2 py-2 text-[15px] font-medium outline-none focus:border-blue">
-          <option value="invite" ${m.role === "invite" ? "selected" : ""}>Invité</option>
+          <option value="invite" ${m.role === "invite" ? "selected" : ""}>Abonné</option>
           <option value="adherent" ${m.role === "adherent" ? "selected" : ""}>Adhérent</option>
           ${isOwner() ? `<option value="gestionnaire" ${m.role === "gestionnaire" ? "selected" : ""}>Administrateur</option>` : ""}</select>`}
   </li>`).join("") || empty("Personne ne répond à ce nom.", "Vérifiez l'orthographe, ou cherchez par email.", "🕵️")}</ul>`;
@@ -1283,7 +1334,7 @@ function queueCard(q, i) {
       ${field("Mots-clés, séparés par des virgules", `<input data-q="${i}" data-f="keywords" value="${esc(q.keywords)}" placeholder="congés, formation" class="${inp}">`)}
       <div class="sm:col-span-2">${field("Description courte", `<textarea data-q="${i}" data-f="description" rows="2" class="${inp}">${esc(q.description)}</textarea>`)}</div>
     </div>
-    <label class="mt-4 flex cursor-pointer items-center gap-3 text-[15px]"><input type="checkbox" class="cb" data-q="${i}" data-f="is_public" ${q.is_public ? "checked" : ""}> Document de découverte (visible par les invités)</label>
+    <label class="mt-4 flex cursor-pointer items-center gap-3 text-[15px]"><input type="checkbox" class="cb" data-q="${i}" data-f="is_public" ${q.is_public ? "checked" : ""}> Document de découverte (visible par les abonnés)</label>
   </div>`;
 }
 
@@ -1719,6 +1770,7 @@ document.addEventListener("click", async (e) => {
   const a = t.dataset.act, id = t.dataset.id;
   switch (a) {
     case "authmode": setAuthMode(t.dataset.m); break;
+    case "forgot": $("f-reset").email.value = $("f-login").email.value; setAuthMode("reset"); setTimeout(() => $("f-reset").email.focus(), 30); break;
     case "go": {
       let v = t.dataset.v;
       if (["gazettes", "tracts", "cr"].includes(v)) { S.pubTab = v; v = "pubs"; }
@@ -1817,7 +1869,7 @@ document.addEventListener("click", async (e) => {
     }
     case "approve": case "reject": {
       const ids = [...S.sel]; if (!ids.length) return;
-      if (a === "reject" && !(await ask(`Refuser ${plural(ids.length, "demande")} ? Les comptes concernés resteront invités.`, "Refuser"))) return;
+      if (a === "reject" && !(await ask(`Refuser ${plural(ids.length, "demande")} ? Les comptes concernés resteront abonnés.`, "Refuser"))) return;
       let { error } = await sb.rpc("decide_members", { ids, approve: a === "approve" });
       if (error && /decide_members/.test(error.message || "") && isOwner()) {
         const patch = a === "approve" ? { role: "adherent", requested_adherent: false } : { requested_adherent: false };
@@ -1895,7 +1947,7 @@ document.addEventListener("change", async (e) => {
   if (t.id === "n-notify") { S.news.draft.notify = t.checked; return; }
   if (t.dataset.role) {
     const m = S.members.find((x) => x.id === t.dataset.role);
-    if (t.value === "gestionnaire" && !(await ask(`Nommer ${m?.full_name || m?.email || "ce membre"} administrateur ? Il pourra gérer le fil, les documents, les adhésions et passer les membres d'invité à adhérent. Vous seul pouvez nommer ou retirer un administrateur et supprimer des documents.`, "Nommer administrateur"))) { t.value = m?.role || "adherent"; return; }
+    if (t.value === "gestionnaire" && !(await ask(`Nommer ${m?.full_name || m?.email || "ce membre"} administrateur ? Il pourra gérer le fil, les documents, les adhésions et passer les membres d'abonné à adhérent. Vous seul pouvez nommer ou retirer un administrateur et supprimer des documents.`, "Nommer administrateur"))) { t.value = m?.role || "adherent"; return; }
     const { error } = await sb.from("profiles").update({ role: t.value, requested_adherent: false }).eq("id", t.dataset.role);
     if (error) { t.value = m?.role || "adherent"; return toast(/gestionnaire/.test(error.message || "") ? "Le rôle Administrateur n'est pas encore activé : exécutez le script SQL v7." : errMsg(error), "err"); }
     await loadAdmin(); renderNav(); renderAdmin(); toast(`Statut modifié : ${ROLES[t.value]}`);
