@@ -758,7 +758,8 @@ async function hlSave() {
 /* Import du tableau des visites (Excel / CSV) */
 const FR_MONTHS = ["janv", "fevr", "mars", "avr", "mai", "juin", "juil", "aout", "sept", "oct", "nov", "dec"];
 function cellDate(v, year) {
-  if (v instanceof Date && !isNaN(v)) return iso(v);
+  // Excel stocke les dates en jours ; la conversion peut tomber quelques minutes avant minuit : on recentre à midi
+  if (v instanceof Date && !isNaN(v)) return iso(new Date(Math.round(v.getTime() / 86400000) * 86400000 + 43200000));
   if (typeof v === "number" && v > 20000 && v < 80000) return iso(new Date(Math.round((v - 25569) * 86400000) + 43200000));
   const s = norm(String(v ?? "")).trim(); if (!s) return null;
   let m = s.match(/(\d{1,2})[\/.\-](\d{1,2})(?:[\/.\-](\d{2,4}))?/);
@@ -770,7 +771,7 @@ function cellDate(v, year) {
 async function hlParse(file) {
   try {
     await loadScript(LIB.excel);
-    const wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true }), year = new Date().getFullYear(), out = [];
+    const wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false }), year = new Date().getFullYear(), out = [];
     wb.SheetNames.forEach((sn) => {
       const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: "" });
       const hi = rows.findIndex((r) => r.some((c) => /date/.test(norm(c))) && r.some((c) => /agence|site|lieu|structure|etablissement/.test(norm(c))));
