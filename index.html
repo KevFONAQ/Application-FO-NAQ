@@ -213,7 +213,8 @@ function marked(str, toks) {
   return out + (open ? "</mark>" : "");
 }
 const fmtMB = (b) => (b / 1048576).toFixed(1).replace(".", ",") + " Mo";
-const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "";
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }).replace(/^1 /, "1er ") : "";
+const fmtDateCap = (d) => fmtDate(d).replace(/ (\p{L})/u, (m, l) => " " + l.toUpperCase());
 const plural = (n, s, p) => `${n} ${n > 1 ? (p || s + "s") : s}`;
 const initials = (n, e) => ((n || e || "?").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("") || "?").toUpperCase();
 const ROLES = { invite: "Abonné", adherent: "Adhérent", gestionnaire: "Administrateur", admin: "Administrateur principal" };
@@ -1374,7 +1375,7 @@ function vProfile() {
       </div>
       <dl class="mt-6 grid grid-cols-2 gap-3 text-[15px]">
         <div class="rounded-2xl p-4" style="background:${THEME.profile.bg}"><dt class="text-ink-soft">Statut</dt><dd class="mt-0.5 font-semibold">${ROLES[p.role]}</dd></div>
-        <div class="rounded-2xl p-4" style="background:${THEME.library.bg}"><dt class="text-ink-soft">Inscrit depuis</dt><dd class="mt-0.5 font-semibold">${fmtDate(p.created_at)}</dd></div>
+        <div class="rounded-2xl p-4" style="background:${THEME.library.bg}"><dt class="text-ink-soft">Inscrit depuis</dt><dd class="mt-0.5 font-semibold">${fmtDateCap(p.created_at)}</dd></div>
       </dl>
     </div>
     ${inviteCard()}
