@@ -1110,10 +1110,12 @@ const THEME = {
   contacts: { c: "#1F7A5A", bg: "#E3F4EC", emo: "📍" },
 };
 const deco = (c) => `<svg class="pointer-events-none absolute -right-12 -top-10 h-56 w-56" viewBox="0 0 200 200" aria-hidden="true"><circle cx="118" cy="82" r="72" fill="${c}" opacity=".13"/><circle cx="52" cy="150" r="30" fill="${c}" opacity=".2"/><rect x="138" y="136" width="40" height="40" rx="11" fill="${c}" opacity=".28" transform="rotate(18 158 156)"/></svg>`;
+const MASCOT = { gazettes: ["/mascottes/lion-gazettes.webp", 493, 520], library: ["/mascottes/lion-textes.webp", 508, 520] };
 const pageHead = (t, sub = "", view = S.view) => {
-  const th = THEME[view];
+  const th = THEME[view], m = MASCOT[view];
   return `<header class="relative overflow-hidden px-4 pb-7" style="background:${th.bg};padding-top:max(26px,env(safe-area-inset-top))">${deco(th.c)}
-    <div class="relative mx-auto max-w-2xl">
+    <div class="relative mx-auto max-w-2xl${m ? " pr-[118px] sm:pr-[170px]" : ""}">
+      ${m ? `<img src="${m[0]}" alt="" aria-hidden="true" width="${m[1]}" height="${m[2]}" class="mascot pointer-events-none absolute bottom-[-28px] right-0 w-[124px] select-none drop-shadow-md sm:w-[176px]" draggable="false">` : ""}
       <span class="grid h-12 w-12 place-items-center rounded-2xl bg-white text-2xl shadow-sm" aria-hidden="true">${th.emo}</span>
       <h1 class="mt-4 font-display text-[40px] font-bold leading-none" style="color:${th.c}">${t}</h1>${sub ? `<p class="mt-2 max-w-md text-[16px] text-ink-soft">${sub}</p>` : ""}
     </div></header>`;
