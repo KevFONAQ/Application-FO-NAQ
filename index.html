@@ -591,7 +591,7 @@ async function postNews() {
 const GAZ_QUIPS = [
   "L'actu de la région, avec le sourire (et parfois sans filtre).",
   "Rédigées avec sérieux. Lues avec le sourire.",
-  "Le seul journal où la direction n'a pas de droit de réponse.",
+  "Le seul journal où la Direction n'a pas de droit de réponse.",
   "Garanties sans langue de bois, avec un peu d'humour dedans.",
 ];
 const monthYear = (d) => new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
@@ -887,7 +887,7 @@ const TAGS = [
   [/teletrav|horaire|temps/, "Où, quand, combien de temps."],
   [/accord/, "Ce qui a été négocié, et gagné."],
 ];
-const FALLBACK = ["Rangé, classé, prêt à servir.", "De quoi répondre à la direction.", "Tout ce qu'il faut savoir, sans jargon inutile."];
+const FALLBACK = ["Rangé, classé, prêt à servir.", "De quoi répondre à la Direction.", "Tout ce qu'il faut savoir, sans jargon inutile."];
 const tagline = (c) => { const n = norm(c); for (const [r, t] of TAGS) if (r.test(n)) return t; let h = 0; for (const ch of c) h = (h + ch.charCodeAt(0)) % FALLBACK.length; return FALLBACK[h]; };
 const tint = (hex, a = "1F") => hex + a;
 const wrap = (html, cls = "") => `<div class="mx-auto max-w-2xl px-4 ${cls}">${html}</div>`;
