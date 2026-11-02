@@ -735,8 +735,8 @@ function vComptesRendus() {
   return `${pageHead("Les comptes rendus", pick(CR_QUIPS), "cr")}${pubTabs()}
   ${wrap(`
     ${inviteCard()}
-    ${list.length ? Object.keys(byYear).sort((a, b) => b - a).map((y) => `${sectionTitle(y, `<span class="text-[15px] text-ink-soft">${plural(byYear[y].length, "compte rendu", "comptes rendus")}</span>`)}<div class="space-y-3">${byYear[y].map(crRow).join("")}</div>`).join("")
-      : S.profil.role === "invite" ? `<div class="mt-6">${empty("Les comptes rendus sont réservés aux adhérents.", "Demandez votre accès adhérent pour les lire.", "🔒")}</div>`
+    ${S.profil.role === "invite" ? lockedPanel("cr") : list.length ? Object.keys(byYear).sort((a, b) => b - a).map((y) => `${sectionTitle(y, `<span class="text-[15px] text-ink-soft">${plural(byYear[y].length, "compte rendu", "comptes rendus")}</span>`)}<div class="space-y-3">${byYear[y].map(crRow).join("")}</div>`).join("")
+      : S.profil.role === "invite" ? lockedPanel("cr")
       : `<div class="mt-6">${empty("Aucun compte rendu pour l'instant.", isStaff() ? "Déposez-en un dans Gestion > Documents, rubrique « Compte rendu »." : "Ils seront publiés après chaque réunion.", "📝")}</div>`}
   `, "pb-6")}`;
 }
@@ -1100,6 +1100,32 @@ function docCard(d, compact = false) {
 }
 
 /* Statut invité */
+/* Contenus réservés : message aux abonnés + lien vers le mail du syndicat */
+const SYNDICAT_MAIL = "syndicat.fo-naquitaine@francetravail.fr";
+function joinMailto() {
+  const p = S.profil || {};
+  const subject = "Demande d'adhésion FO - Base documentaire";
+  const body = `Bonjour,\n\nJe suis inscrit(e) sur la base documentaire FO Nouvelle-Aquitaine en tant qu'abonné(e) et je souhaite adhérer à FO pour accéder à l'ensemble des documents.\n\nNom : ${p.full_name || ""}\nEmail : ${p.email || ""}\n\nMerci,\n`;
+  return `mailto:${SYNDICAT_MAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+const LOCK_QUIPS = {
+  textes: ["Ces textes sont gardés au chaud pour les adhérents. Comme le café de la salle de pause : il faut être de la maison.",
+           "Ici, c'est le rayon VIP. Pas de tapis rouge, mais des conventions, des accords et des réponses à vos questions."],
+  cr:     ["Les comptes rendus, c'est entre adhérents. Promis, on ne parle pas de vous… enfin, pas trop.",
+           "Ce qui se dit en séance reste entre adhérents. Pour savoir qui a dit quoi, il faut entrer dans la famille."],
+};
+function lockedPanel(kind) {
+  if (S.profil?.role !== "invite") return "";
+  return `<div class="relative mt-6 overflow-hidden rounded-[24px] bg-ink p-6 text-white">
+    <span class="pointer-events-none absolute -right-6 -top-6 text-[110px] leading-none opacity-10" aria-hidden="true">🔒</span>
+    <div class="relative">
+      <b class="block font-display text-[26px] leading-tight">Chut… c'est réservé aux adhérents</b>
+      <p class="mt-2 text-[16px] leading-relaxed text-white/80">${pick(LOCK_QUIPS[kind] || LOCK_QUIPS.textes)}</p>
+      <a href="${joinMailto()}" class="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-4 text-center text-[17px] font-bold text-ink transition hover:bg-paper">✉️ Écrire au syndicat pour adhérer</a>
+      <p class="mt-2 text-center text-[13px] text-white/60">${SYNDICAT_MAIL}</p>
+    </div></div>`;
+}
+
 function inviteCard() {
   const p = S.profil;
   if (p.role !== "invite") return "";
@@ -1115,6 +1141,7 @@ function inviteCard() {
         <span><b class="block text-[17px]">Le reste de la bibliothèque est derrière cette porte</b><span class="text-[15px] text-ink-soft">La clé : votre adhésion FO. En attendant, un document de découverte vous est ouvert.</span></span>
       </div>
       <button data-act="request" class="relative mt-5 w-full rounded-2xl bg-ink py-4 text-[17px] font-bold text-white transition hover:bg-black">Demander mon accès adhérent</button>
+      <a href="${joinMailto()}" class="relative mt-2 block w-full rounded-2xl bg-white py-3.5 text-center text-[16px] font-semibold text-ink">✉️ Pas encore adhérent ? Écrivez au syndicat</a>
     </div>`;
 }
 
@@ -1188,7 +1215,7 @@ function vHome() {
 
 /* ================= BIBLIOTHÈQUE ================= */
 function vLibrary() {
-  if (S.profil.role === "invite") return pageHead("Les textes", "Un avant-goût, en attendant la suite.") + wrap(`${inviteCard()}${sectionTitle("Ouvert à tous")}<div id="lib-list"></div>`);
+  if (S.profil.role === "invite") return pageHead("Les textes", "Un avant-goût, en attendant la suite.") + wrap(`${inviteCard()}${sectionTitle("Ouvert à tous")}<div id="lib-list"></div>${lockedPanel("textes")}`, "pb-6");
   const cats = allCats(), hasNone = S.docs.some((d) => !d.category);
   const chips = [...cats, ...(hasNone && cats.length ? [NONE] : [])];
   return `
