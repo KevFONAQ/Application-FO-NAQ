@@ -127,6 +127,7 @@
 
 <input id="file-in" type="file" accept=".pdf,.docx,.xlsx,.xls,.csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" multiple class="hidden">
 <input id="news-file" type="file" accept="image/*,video/*" class="hidden">
+<input id="hl-file" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" class="hidden">
 
 <!-- ================= LECTEUR ================= -->
 <div id="viewer" class="fixed inset-0 z-50 hidden flex-col bg-[#2A313C]">
@@ -224,6 +225,8 @@ const P = {
   eye: 'M2.04 12.32a1.01 1.01 0 0 1 0-.64C3.42 7.51 7.36 4.5 12 4.5c4.64 0 8.57 3 9.96 7.18.07.2.07.43 0 .64C20.58 16.49 16.64 19.5 12 19.5c-4.64 0-8.57-3-9.96-7.18ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
   history: 'M12 6v6l4 2M3.5 12a8.5 8.5 0 1 0 2.5-6M3 4v4h4',
   chevron: 'm8.25 4.5 7.5 7.5-7.5 7.5',
+  gazette: 'M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.38c.62 0 1.12.5 1.12 1.13V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.88c0-.63-.5-1.13-1.13-1.13H4.13C3.5 3.75 3 4.25 3 4.88V18a2.25 2.25 0 0 0 2.25 2.25h13.5M6 7.5h3v3H6v-3Z',
+  calendar: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5',
 };
 const ic = (n, c = "w-6 h-6") => `<svg class="${c}" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="${P[n]}"/></svg>`;
 const spinner = (c = "w-4 h-4") => `<svg class="${c} spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity=".25"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`;
@@ -430,7 +433,7 @@ async function boot(session) {
   const { data: p, error } = await sb.from("profiles").select("*").eq("id", session.user.id).single();
   if (error || !p) return toast("Profil introuvable : " + (error?.message || "contactez l'administrateur."), "err");
   S.profil = p; S.view = "home";
-  await Promise.all([loadDocs(), loadNews()]);
+  await Promise.all([loadDocs(), loadNews(), loadHighlights()]);
   if (isAdmin()) await loadAdmin();
   $("auth").classList.add("hidden"); $("app").classList.remove("hidden");
   render();
@@ -441,7 +444,9 @@ async function boot(session) {
 async function loadDocs() {
   const { data, error } = await sb.from("documents").select("*").order("created_at", { ascending: false });
   if (error) toast(errMsg(error), "err");
-  S.docs = data || [];
+  S.all = data || [];
+  S.docs = S.all.filter((d) => d.section !== "gazette");   // textes juridiques
+  S.gaz = S.all.filter((d) => d.section === "gazette");     // gazettes
 }
 async function loadAdmin() {
   const [m, f] = await Promise.all([
@@ -539,8 +544,9 @@ function composer() {
     </div></div>`;
 }
 function newsSection() {
-  if (S.news.off) return isStaff() ? `${sectionTitle("Le fil")}<div class="rounded-[22px] bg-amber-50 p-5 text-[15px] text-amber-900 ring-1 ring-amber-200">Le fil d'actualité n'est pas encore activé dans la base : exécutez le script SQL v7 dans Supabase.</div>` : "";
+  if (S.news.off) return highlightsBox() + (isStaff() ? `${sectionTitle("Le fil")}<div class="rounded-[22px] bg-amber-50 p-5 text-[15px] text-amber-900 ring-1 ring-amber-200">Le fil d'actualité n'est pas encore activé dans la base : exécutez le script SQL v7 dans Supabase.</div>` : "");
   return `${sectionTitle("Le fil", `<span class="text-[15px] text-ink-soft">Ce qui bouge dans la région</span>`)}
+    ${highlightsBox()}
     ${isStaff() ? composer() : ""}
     <div class="space-y-4">${S.news.list.map(newsCard).join("") || empty("Calme plat sur le fil.", isStaff() ? "Publiez la première actualité !" : "Les prochaines nouvelles arriveront ici.", "📰")}</div>
     ${S.news.more ? `<button data-act="nmore" class="mt-4 w-full rounded-2xl bg-white py-3.5 font-semibold text-blue ring-1 ring-line">Voir les actualités précédentes</button>` : ""}`;
@@ -581,17 +587,254 @@ async function postNews() {
   finally { S.news.busy = false; render(true); }
 }
 
+/* ================= GAZETTES ================= */
+const GAZ_QUIPS = [
+  "L'actu de la région, avec le sourire (et parfois sans filtre).",
+  "Rédigées avec sérieux. Lues avec le sourire.",
+  "Le seul journal où la direction n'a pas de droit de réponse.",
+  "Garanties sans langue de bois, avec un peu d'humour dedans.",
+];
+const monthYear = (d) => new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+function gazCard(d, big = false) {
+  const k = kindOf(d.storage_path);
+  return `<button data-act="open" data-id="${d.id}" class="group w-full overflow-hidden rounded-[20px] bg-white text-left shadow-[0_1px_0_#DCE0E6,0_8px_22px_-12px_rgba(28,36,48,.35)] transition hover:-translate-y-1">
+    <span class="relative block ${big ? "aspect-[4/3]" : "aspect-[3/4]"} overflow-hidden" style="background:${THEME.gazettes.bg}">
+      ${k === "pdf" ? `<span data-cover="${d.id}" class="absolute inset-0 grid place-items-center text-5xl" aria-hidden="true">🗞️</span>`
+        : `<span class="absolute inset-0 grid place-items-center text-5xl" aria-hidden="true">🗞️</span>`}
+      <span class="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[12px] font-bold text-white shadow" style="background:${THEME.gazettes.c}">${esc(monthYear(d.created_at))}</span>
+    </span>
+    <span class="block p-3.5">
+      <b class="block text-[16px] leading-snug">${esc(d.title)}</b>
+      ${d.description ? `<span class="mt-1 line-clamp-2 block text-[14px] text-ink-soft">${esc(d.description)}</span>` : ""}
+    </span>
+  </button>`;
+}
+function vGazettes() {
+  const list = S.gaz || [];
+  return `${pageHead("Les gazettes", pick(GAZ_QUIPS))}
+  ${wrap(`
+    ${inviteCard()}
+    ${list.length ? `
+      ${sectionTitle("Le dernier numéro")}
+      <div class="mx-auto max-w-md">${gazCard(list[0], true)}</div>
+      ${list.length > 1 ? `${sectionTitle("Les anciens numéros", `<span class="text-[15px] text-ink-soft">${plural(list.length - 1, "numéro")}</span>`)}
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">${list.slice(1).map((d) => gazCard(d)).join("")}</div>` : ""}`
+    : `<div class="mt-6">${empty("La rédaction prépare le prochain numéro.", isStaff() ? "Déposez une gazette dans Gestion > Documents, rubrique « Gazette »." : "Revenez bientôt, ça va piquer (gentiment).", "✍️")}</div>`}
+  `, "pb-6")}`;
+}
+/* Couvertures : rendu de la première page des PDF, à l'affichage */
+S.covers = {};
+let coverObs = null;
+function watchCovers() {
+  coverObs?.disconnect();
+  coverObs = new IntersectionObserver((ents) => ents.forEach((en) => { if (en.isIntersecting) { coverObs.unobserve(en.target); drawCover(en.target); } }), { rootMargin: "300px" });
+  document.querySelectorAll("[data-cover]").forEach((el) => { if (S.covers[el.dataset.cover]) showCover(el, S.covers[el.dataset.cover]); else coverObs.observe(el); });
+}
+const showCover = (el, url) => { el.innerHTML = `<img src="${url}" alt="" class="h-full w-full object-cover object-top">`; };
+async function drawCover(el) {
+  const d = S.all.find((x) => x.id === el.dataset.cover); if (!d) return;
+  try {
+    const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(d.storage_path, 300);
+    if (error) throw error;
+    const pdf = await pdfjsLib.getDocument(data.signedUrl).promise;
+    const page = await pdf.getPage(1), base = page.getViewport({ scale: 1 });
+    const vp = page.getViewport({ scale: 520 / base.width });
+    const c = document.createElement("canvas"); c.width = vp.width; c.height = vp.height;
+    await page.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
+    S.covers[d.id] = c.toDataURL("image/jpeg", 0.8); pdf.destroy();
+    document.querySelectorAll(`[data-cover="${d.id}"]`).forEach((x) => showCover(x, S.covers[d.id]));
+  } catch { /* la couverture reste illustrée par 🗞️ */ }
+}
+
+/* ================= TEMPS FORTS DU MOIS ================= */
+const HL_KIND = { cse: { label: "CSE", emo: "🏛️" }, visite: { label: "Visite d'agence", emo: "🏢" }, autre: { label: "Rendez-vous", emo: "📌" } };
+const hlNorm = (x) => norm(x).replace(/[^a-z0-9]+/g, " ").trim();
+const iso = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+const dOf = (s) => new Date(s + "T12:00:00");
+const fmtDay = (s, o = { weekday: "short", day: "numeric", month: "short" }) => dOf(s).toLocaleDateString("fr-FR", o);
+S.hl = { list: [], off: false, form: false, busy: false, warn: null, draft: { kind: "visite", date: "", label: "", details: "" }, imp: null };
+async function loadHighlights() {
+  const now = new Date(), from = iso(new Date(now.getFullYear(), now.getMonth(), 1)), to = iso(new Date(now.getFullYear(), now.getMonth() + 4, 0));
+  const { data, error } = await sb.from("highlights").select("*").gte("event_date", from).lte("event_date", to).order("event_date");
+  if (error) { S.hl.off = true; S.hl.list = []; return; }
+  S.hl.off = false; S.hl.list = data || [];
+}
+function hlRow(h, today) {
+  const past = h.event_date < today, k = HL_KIND[h.kind];
+  return `<li class="flex items-start gap-3 py-2 ${past ? "opacity-50" : ""}">
+    <span class="w-[74px] shrink-0 rounded-xl bg-white px-2 py-1 text-center text-[13px] font-bold leading-tight" style="color:${THEME.home.c}">${esc(fmtDay(h.event_date))}</span>
+    <span class="min-w-0 flex-1 text-[15px] leading-snug"><b>${k.emo} ${esc(h.label)}</b>${h.details ? `<span class="block text-[13px] text-ink-soft">${esc(h.details)}</span>` : ""}${past ? `<span class="block text-[12px] text-ink-faint">passé</span>` : ""}</span>
+    ${isStaff() ? `<button data-act="hldel" data-id="${h.id}" class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-ink-faint hover:bg-white hover:text-fo" aria-label="Retirer ce rendez-vous">${ic("x", "w-4 h-4")}</button>` : ""}
+  </li>`;
+}
+function highlightsBox() {
+  if (S.hl.off) return isStaff() ? `<div class="mb-4 rounded-[22px] bg-amber-50 p-5 text-[15px] text-amber-900 ring-1 ring-amber-200">L'encart des temps forts n'est pas encore activé dans la base.</div>` : "";
+  const now = new Date(), today = iso(now), ym = today.slice(0, 7);
+  const month = now.toLocaleDateString("fr-FR", { month: "long" });
+  const L = S.hl.list;
+  const cse = L.find((h) => h.kind === "cse" && h.event_date >= today);
+  const visits = L.filter((h) => h.kind === "visite" && h.event_date.startsWith(ym));
+  const nextVisit = !visits.some((h) => h.event_date >= today) ? L.find((h) => h.kind === "visite" && h.event_date >= today) : null;
+  const others = L.filter((h) => h.kind === "autre" && h.event_date.startsWith(ym));
+  const last = [...L].sort((a, b) => (b.created_at > a.created_at ? 1 : -1))[0];
+  const daysTo = cse ? Math.round((dOf(cse.event_date) - dOf(today)) / 86400000) : null;
+  const empty0 = !cse && !visits.length && !others.length && !nextVisit;
+  return `<section class="relative mb-5 overflow-hidden rounded-[24px] p-5" style="background:linear-gradient(135deg,#E7EEFC,#FBF1DD)">
+    ${deco(THEME.home.c)}
+    <div class="relative">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="font-display text-[26px] font-bold leading-none" style="color:${THEME.home.c}">Les temps forts de ${esc(month)}</h3>
+        ${isStaff() ? `<button data-act="hlopen" class="shrink-0 rounded-full bg-white px-3.5 py-2 text-[14px] font-bold shadow-sm" style="color:${THEME.home.c}">+ Ajouter</button>` : ""}
+      </div>
+      ${cse ? `<div class="mt-4 flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm">
+        <span class="grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-center font-display text-white" style="background:${THEME.home.c}"><b class="block text-[22px] leading-none">${dOf(cse.event_date).getDate()}</b></span>
+        <span class="min-w-0"><span class="block text-[13px] font-semibold uppercase tracking-wide text-ink-soft">Prochain CSE</span><b class="block text-[17px]">${esc(fmtDay(cse.event_date, { weekday: "long", day: "numeric", month: "long" }))}</b>
+        <span class="block text-[14px] text-ink-soft">${daysTo === 0 ? "C'est aujourd'hui !" : daysTo === 1 ? "C'est demain." : `Dans ${daysTo} jours.`}${cse.details ? " " + esc(cse.details) : ""}</span></span>
+      </div>` : ""}
+      ${visits.length || nextVisit ? `<p class="mt-4 text-[14px] font-bold" style="color:${THEME.home.c}">🏢 ${visits.length ? `Visites d'agences ce mois-ci (${visits.length})` : "Prochaine visite d'agence"}</p>
+        <ul class="divide-y divide-white/70">${(visits.length ? visits : [nextVisit]).map((h) => hlRow(h, today)).join("")}</ul>` : ""}
+      ${others.length ? `<p class="mt-3 text-[14px] font-bold" style="color:${THEME.home.c}">📌 À noter</p><ul class="divide-y divide-white/70">${others.map((h) => hlRow(h, today)).join("")}</ul>` : ""}
+      ${empty0 ? `<p class="mt-3 text-[15px] text-ink-soft">${isStaff() ? "Rien de prévu pour l'instant. Ajoutez le prochain CSE ou importez le tableau des visites." : "Le programme du mois arrive bientôt."}</p>` : ""}
+      ${S.hl.form ? hlForm() : ""}
+      ${S.hl.imp ? hlImportPreview() : ""}
+      ${last ? `<p class="mt-3 text-[12px] text-ink-faint">Mis à jour par ${esc(last.created_by_name || "un administrateur")}, ${ago(last.created_at)}.</p>` : ""}
+    </div></section>`;
+}
+function hlForm() {
+  const d = S.hl.draft, w = S.hl.warn;
+  return `<div class="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+    <div class="grid gap-3 sm:grid-cols-2">
+      ${field("Type", `<select id="hl-kind" class="${inp}">${Object.entries(HL_KIND).map(([k, v]) => `<option value="${k}" ${d.kind === k ? "selected" : ""}>${v.emo} ${k === "cse" ? "Prochain CSE" : v.label}</option>`).join("")}</select>`)}
+      ${field("Date", `<input id="hl-date" type="date" value="${esc(d.date)}" class="${inp}">`)}
+      <div class="sm:col-span-2">${field(d.kind === "visite" ? "Agence visitée" : "Intitulé", `<input id="hl-label" value="${esc(d.label)}" list="hl-agencies" placeholder="${d.kind === "visite" ? "Ex : Agence de Mérignac" : d.kind === "cse" ? "Ex : CSE ordinaire" : "Ex : Permanence syndicale"}" class="${inp}">`)}</div>
+      <div class="sm:col-span-2">${field("Précisions (facultatif)", `<input id="hl-details" value="${esc(d.details)}" placeholder="Heure, lieu, ordre du jour…" class="${inp}">`)}</div>
+    </div>
+    <datalist id="hl-agencies">${[...new Set(S.hl.list.filter((h) => h.kind === "visite").map((h) => h.label))].map((x) => `<option value="${esc(x)}">`).join("")}</datalist>
+    <div id="hl-warn">${hlWarnHtml(w)}</div>
+    <div class="mt-3 flex flex-wrap justify-between gap-2">
+      <button data-act="hlimport" class="rounded-2xl bg-paper px-4 py-3 text-[15px] font-semibold">📥 Importer le tableau des visites</button>
+      <span class="flex gap-2">
+        <button data-act="hlcancel" class="rounded-2xl bg-paper px-4 py-3 font-semibold">Annuler</button>
+        <button data-act="hlsave" ${S.hl.busy ? "disabled" : ""} class="rounded-2xl px-5 py-3 font-bold text-white disabled:opacity-60" style="background:${THEME.home.c}">${w?.length ? "Ajouter quand même" : "Ajouter"}</button>
+      </span>
+    </div></div>`;
+}
+const hlWarnHtml = (w) => w?.length ? `<div class="mt-3 rounded-xl bg-amber-50 p-3 text-[14px] text-amber-900 ring-1 ring-amber-200"><b>⚠️ Déjà saisi :</b><ul class="mt-1 space-y-0.5">${w.map((h) => `<li>${HL_KIND[h.kind].emo} ${esc(h.label)}, ${esc(fmtDay(h.event_date))} : ajouté par ${esc(h.created_by_name || "un administrateur")} ${ago(h.created_at)}</li>`).join("")}</ul><p class="mt-1">Vérifiez avant d'ajouter, pour éviter un doublon.</p></div>` : "";
+/* Recherche des doublons : même CSE dans le mois, même agence à ±7 jours, même rendez-vous le même jour */
+let hlTimer = 0;
+function hlCheck() {
+  clearTimeout(hlTimer);
+  hlTimer = setTimeout(async () => {
+    const d = S.hl.draft;
+    if (!d.date) { S.hl.warn = null; $("hl-warn") && ($("hl-warn").innerHTML = ""); return; }
+    const dt = dOf(d.date), lab = hlNorm(d.label);
+    let from = d.date, to = d.date;
+    if (d.kind === "cse") { from = iso(new Date(dt.getFullYear(), dt.getMonth(), 1)); to = iso(new Date(dt.getFullYear(), dt.getMonth() + 1, 0)); }
+    if (d.kind === "visite") { from = iso(new Date(dt - 7 * 86400000)); to = iso(new Date(+dt + 7 * 86400000)); }
+    const { data } = await sb.from("highlights").select("*").eq("kind", d.kind).gte("event_date", from).lte("event_date", to);
+    const STOP = new Set(["de", "d", "du", "des", "la", "le", "les", "l", "agence", "ft", "france", "travail", "site", "visite", "et", "a"]);
+    const toks = (x) => new Set(x.split(" ").filter((w) => w && !STOP.has(w)));
+    const mine = toks(lab);
+    const same = (h) => { if (!lab) return true; const t = toks(h.label_norm); if (!mine.size || !t.size) return h.label_norm === lab; return [...mine].every((w) => t.has(w)) || [...t].every((w) => mine.has(w)); };
+    S.hl.warn = (data || []).filter((h) => d.kind === "cse" || (d.kind === "visite" ? lab && same(h) : h.event_date === d.date && same(h)));
+    if ($("hl-warn")) $("hl-warn").innerHTML = hlWarnHtml(S.hl.warn);
+    const btn = document.querySelector('[data-act="hlsave"]'); if (btn) btn.textContent = S.hl.warn.length ? "Ajouter quand même" : "Ajouter";
+  }, 250);
+}
+async function hlSave() {
+  const d = S.hl.draft, label = d.label.trim() || (d.kind === "cse" ? "CSE" : "");
+  if (!d.date) return toast("Choisissez une date.", "err");
+  if (!label) return toast(d.kind === "visite" ? "Indiquez l'agence visitée." : "Ajoutez un intitulé.", "err");
+  S.hl.busy = true;
+  const { error } = await sb.from("highlights").insert({ kind: d.kind, event_date: d.date, label, label_norm: hlNorm(label), details: val(d.details), created_by_name: S.profil.full_name || S.profil.email });
+  S.hl.busy = false;
+  if (error) {
+    if (error.code === "23505") { toast("Ce rendez-vous existe déjà : quelqu'un l'a saisi avant vous.", "err"); await loadHighlights(); return render(true); }
+    return toast(errMsg(error), "err");
+  }
+  S.hl.form = false; S.hl.warn = null; S.hl.draft = { kind: d.kind, date: "", label: "", details: "" };
+  await loadHighlights(); render(true); toast("Ajouté aux temps forts. Les autres administrateurs le verront tout de suite.");
+}
+/* Import du tableau des visites (Excel / CSV) */
+const FR_MONTHS = ["janv", "fevr", "mars", "avr", "mai", "juin", "juil", "aout", "sept", "oct", "nov", "dec"];
+function cellDate(v, year) {
+  if (v instanceof Date && !isNaN(v)) return iso(v);
+  if (typeof v === "number" && v > 20000 && v < 80000) return iso(new Date(Math.round((v - 25569) * 86400000) + 43200000));
+  const s = norm(String(v ?? "")).trim(); if (!s) return null;
+  let m = s.match(/(\d{1,2})[\/.\-](\d{1,2})(?:[\/.\-](\d{2,4}))?/);
+  if (m) { let y = m[3] ? +m[3] : year; if (y < 100) y += 2000; const dt = new Date(y, +m[2] - 1, +m[1]); return isNaN(dt) || +m[2] > 12 ? null : iso(dt); }
+  m = s.match(/(\d{1,2})(?:er)?\s+([a-z]+)\.?(?:\s+(\d{4}))?/);
+  if (m) { const k = FR_MONTHS.findIndex((x) => m[2].startsWith(x.slice(0, 3))); if (k >= 0) return iso(new Date(m[3] ? +m[3] : year, k, +m[1])); }
+  return null;
+}
+async function hlParse(file) {
+  try {
+    await loadScript(LIB.excel);
+    const wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true }), year = new Date().getFullYear(), out = [];
+    wb.SheetNames.forEach((sn) => {
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: "" });
+      const hi = rows.findIndex((r) => r.some((c) => /date/.test(norm(c))) && r.some((c) => /agence|site|lieu|structure|etablissement/.test(norm(c))));
+      let dc, lc, xc = [];
+      if (hi >= 0) {
+        const h = rows[hi].map((c) => norm(c));
+        dc = h.findIndex((c) => /date/.test(c)); lc = h.findIndex((c) => /agence|site|lieu|structure|etablissement/.test(c));
+        xc = h.map((c, i) => (/heure|horaire|commentaire|objet|elu|participant|statut|remarque/.test(c) ? i : -1)).filter((i) => i >= 0);
+      } else {
+        const sample = rows.slice(0, 40), w = Math.max(0, ...sample.map((r) => r.length));
+        const score = (i, f) => sample.filter((r) => f(r[i])).length;
+        dc = [...Array(w).keys()].sort((a, b) => score(b, (v) => cellDate(v, year)) - score(a, (v) => cellDate(v, year)))[0];
+        lc = [...Array(w).keys()].filter((i) => i !== dc).sort((a, b) => score(b, (v) => typeof v === "string" && v.trim().length > 2 && !cellDate(v, year)) - score(a, (v) => typeof v === "string" && v.trim().length > 2 && !cellDate(v, year)))[0];
+      }
+      if (dc == null || lc == null || dc < 0 || lc < 0) return;
+      rows.slice(hi + 1).forEach((r) => {
+        const date = cellDate(r[dc], year), label = String(r[lc] ?? "").trim();
+        if (date && label) out.push({ kind: "visite", event_date: date, label, label_norm: hlNorm(label), details: val(xc.map((i) => String(r[i] ?? "").trim()).filter(Boolean).join(" · ").slice(0, 200)), source: "import" });
+      });
+    });
+    const uniq = [...new Map(out.map((r) => [r.event_date + "|" + r.label_norm, r])).values()].sort((a, b) => (a.event_date < b.event_date ? -1 : 1));
+    if (!uniq.length) return toast("Aucune visite reconnue : il faut une colonne « Date » et une colonne « Agence ».", "err");
+    const { data } = await sb.from("highlights").select("event_date,label_norm").eq("kind", "visite").gte("event_date", uniq[0].event_date).lte("event_date", uniq[uniq.length - 1].event_date);
+    const have = new Set((data || []).map((h) => h.event_date + "|" + h.label_norm));
+    S.hl.imp = { name: file.name, rows: uniq, fresh: uniq.filter((r) => !have.has(r.event_date + "|" + r.label_norm)) };
+    S.hl.form = true; render(true);
+  } catch (e) { toast("Lecture du tableau impossible : " + errMsg(e), "err"); }
+}
+function hlImportPreview() {
+  const I = S.hl.imp, dup = I.rows.length - I.fresh.length;
+  return `<div class="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+    <b class="block text-[16px]">📥 ${esc(I.name)}</b>
+    <p class="mt-1 text-[15px] text-ink-soft">${plural(I.rows.length, "visite trouvée", "visites trouvées")} : <b class="text-emerald-700">${plural(I.fresh.length, "nouvelle")}</b>${dup ? `, ${plural(dup, "déjà présente")} (ignorée${dup > 1 ? "s" : ""})` : ""}.</p>
+    ${I.fresh.length ? `<ul class="mt-2 max-h-56 overflow-y-auto rounded-xl bg-paper px-3 py-1 text-[14px]">${I.fresh.slice(0, 60).map((r) => `<li class="py-1"><b>${esc(fmtDay(r.event_date))}</b> : ${esc(r.label)}</li>`).join("")}${I.fresh.length > 60 ? `<li class="py-1 text-ink-soft">… et ${I.fresh.length - 60} autres</li>` : ""}</ul>` : ""}
+    <div class="mt-3 flex justify-end gap-2">
+      <button data-act="hlimpcancel" class="rounded-2xl bg-paper px-4 py-3 font-semibold">Annuler</button>
+      ${I.fresh.length ? `<button data-act="hlimpgo" ${S.hl.busy ? "disabled" : ""} class="rounded-2xl px-5 py-3 font-bold text-white disabled:opacity-60" style="background:${THEME.home.c}">Importer ${plural(I.fresh.length, "visite")}</button>` : ""}
+    </div></div>`;
+}
+async function hlImport() {
+  const rows = S.hl.imp.fresh.map((r) => ({ ...r, created_by_name: S.profil.full_name || S.profil.email }));
+  S.hl.busy = true; let ok = 0;
+  for (let i = 0; i < rows.length; i += 100) {
+    const { data, error } = await sb.from("highlights").upsert(rows.slice(i, i + 100), { onConflict: "kind,event_date,label_norm", ignoreDuplicates: true }).select("id");
+    if (error) { S.hl.busy = false; return toast(errMsg(error), "err"); }
+    ok += (data || []).length;
+  }
+  S.hl.busy = false; S.hl.imp = null; S.hl.form = false;
+  await loadHighlights(); render(true);
+  toast(ok ? `${plural(ok, "visite importée", "visites importées")}. Les doublons ont été ignorés.` : "Toutes ces visites étaient déjà saisies : rien à ajouter.");
+}
+
 /* ================= RENDU ================= */
 function render(keep = false) {
   renderNav();
-  const v = { home: vHome, library: vLibrary, admin: vAdmin, profile: vProfile }[S.view] || vHome;
+  const v = { home: vHome, library: vLibrary, gazettes: vGazettes, admin: vAdmin, profile: vProfile }[S.view] || vHome;
   $("view").innerHTML = v();
   if (S.view === "library") { scheduleHits(); renderLibList(); }
   if (S.view === "admin") renderAdmin();
+  if (S.view === "gazettes" || S.view === "home") watchCovers();
   if (!keep) window.scrollTo(0, 0);
 }
 function renderNav() {
-  const items = [["home", "Accueil", "home"], ["library", "Textes", "book"]];
+  const items = [["home", "Accueil", "home"], ["library", "Textes", "book"], ["gazettes", "Gazettes", "gazette"]];
   if (isAdmin()) items.push(["admin", "Gestion", "shield"]);
   items.push(["profile", "Profil", "user"]);
   const n = pending().length;
@@ -610,6 +853,7 @@ const THEME = {
   library: { c: "#1F7A5A", bg: "#E3F4EC", emo: "🔎" },
   admin:   { c: "#6B3FA0", bg: "#EFE8FA", emo: "🛠️" },
   profile: { c: "#B7791F", bg: "#FBF1DD", emo: "👋" },
+  gazettes: { c: "#B03A6F", bg: "#FBE8F1", emo: "🗞️" },
 };
 const deco = (c) => `<svg class="pointer-events-none absolute -right-12 -top-10 h-56 w-56" viewBox="0 0 200 200" aria-hidden="true"><circle cx="118" cy="82" r="72" fill="${c}" opacity=".13"/><circle cx="52" cy="150" r="30" fill="${c}" opacity=".2"/><rect x="138" y="136" width="40" height="40" rx="11" fill="${c}" opacity=".28" transform="rotate(18 158 156)"/></svg>`;
 const pageHead = (t, sub = "", view = S.view) => {
@@ -727,6 +971,9 @@ function vHome() {
       </button>` : ""}
 
     ${newsSection()}
+
+    ${(S.gaz || []).length ? `${sectionTitle("La dernière gazette", `<button data-act="go" data-v="gazettes" class="text-[15px] font-semibold text-blue underline-offset-4 hover:underline">Toutes les gazettes</button>`)}
+      <div class="mx-auto max-w-sm">${gazCard(S.gaz[0], true)}</div>` : ""}
 
     ${full && cats.length ? `
       ${sectionTitle("Les rayons", `<span class="text-[15px] text-ink-soft">${plural(S.docs.length, "texte")}</span>`)}
@@ -921,7 +1168,7 @@ const field = (label, html) => `<label class="block"><span class="mb-1.5 block t
 const inp = "w-full rounded-xl border-2 border-line bg-white px-3 py-2.5 text-[16px] outline-none transition focus:border-blue";
 
 function aDocuments() {
-  const declared = new Set(S.docs.map((d) => d.storage_path));
+  const declared = new Set(S.all.map((d) => d.storage_path));
   const orphans = S.files.filter((f) => !declared.has(f) && !S.queue.some((q) => q.existing === f));
   return `
   <div id="dropzone" data-act="pick" role="button" tabindex="0" class="cursor-pointer rounded-[22px] border-2 border-dashed border-ink-faint/50 bg-white px-6 py-10 text-center transition hover:border-blue hover:bg-blue-soft">
@@ -941,12 +1188,12 @@ function aDocuments() {
     <span class="text-amber-700">${ic("doc", "w-6 h-6")}</span><span class="min-w-0 flex-1 truncate text-[15px]">${esc(f)}</span>
     <button data-act="declare" data-f="${esc(f)}" class="shrink-0 rounded-xl bg-white px-3.5 py-2 text-[15px] font-semibold text-amber-800 ring-1 ring-amber-300">Déclarer</button></li>`).join("")}</ul>` : ""}
 
-  ${(() => { const todo = S.docs.filter((d) => d.text_pages == null && S.files.includes(d.storage_path)); return todo.length ? `<div class="mt-8 flex flex-wrap items-center gap-4 rounded-[22px] p-5" style="background:${THEME.admin.bg}">
+  ${(() => { const todo = S.all.filter((d) => d.text_pages == null && S.files.includes(d.storage_path)); return todo.length ? `<div class="mt-8 flex flex-wrap items-center gap-4 rounded-[22px] p-5" style="background:${THEME.admin.bg}">
     <span class="text-3xl" aria-hidden="true">🔦</span>
     <span class="min-w-0 flex-1"><b class="block text-[17px]">${plural(todo.length, "document")} à indexer</b><span class="text-[15px] text-ink-soft">Pour que la recherche trouve aussi les mots à l'intérieur des fichiers.</span></span>
     <button data-act="indexAll" ${S.indexing ? "disabled" : ""} class="shrink-0 rounded-2xl px-4 py-3 font-bold text-white disabled:opacity-50" style="background:${THEME.admin.c}">Tout indexer</button></div>` : ""; })()}
-  ${sectionTitle(`En ligne (${S.docs.length})`)}
-  <ul class="space-y-2">${S.docs.map(docRow).join("") || empty("Rien en rayon pour l'instant.", "Déposez un premier fichier ci-dessus.", "📭")}</ul>`;
+  ${sectionTitle(`En ligne (${S.all.length})`)}
+  <ul class="space-y-2">${S.all.map(docRow).join("") || empty("Rien en rayon pour l'instant.", "Déposez un premier fichier ci-dessus.", "📭")}</ul>`;
 }
 
 function queueCard(q, i) {
@@ -960,6 +1207,7 @@ function queueCard(q, i) {
     ${q.err ? `<p class="mb-3 rounded-xl bg-fo-soft px-3 py-2 text-[14px] text-fo-deep">${esc(q.err)}</p>` : ""}
     <div class="grid gap-3 sm:grid-cols-2">
       ${field("Titre affiché *", `<input data-q="${i}" data-f="title" value="${esc(q.title)}" class="${inp}">`)}
+      ${field("Rubrique", `<select data-q="${i}" data-f="section" class="${inp}"><option value="textes" ${q.section !== "gazette" ? "selected" : ""}>📚 Textes juridiques</option><option value="gazette" ${q.section === "gazette" ? "selected" : ""}>🗞️ Gazette</option></select>`)}
       ${field("Rayon", `<input data-q="${i}" data-f="category" value="${esc(q.category)}" list="catlist" placeholder="Accords, Conventions…" class="${inp}">`)}
       ${field("Référence juridique", `<input data-q="${i}" data-f="reference" value="${esc(q.reference)}" placeholder="Art. L2315-7" class="${inp}">`)}
       ${field("Mots-clés, séparés par des virgules", `<input data-q="${i}" data-f="keywords" value="${esc(q.keywords)}" placeholder="congés, formation" class="${inp}">`)}
@@ -973,6 +1221,7 @@ function docRow(d) {
   if (S.editing === d.id) return `<li class="rounded-[22px] bg-white p-4 ring-2 ring-ink">
     <div class="grid gap-3 sm:grid-cols-2">
       ${field("Titre affiché *", `<input id="e-title" value="${esc(d.title)}" class="${inp}">`)}
+      ${field("Rubrique", `<select id="e-section" class="${inp}"><option value="textes" ${d.section !== "gazette" ? "selected" : ""}>📚 Textes juridiques</option><option value="gazette" ${d.section === "gazette" ? "selected" : ""}>🗞️ Gazette</option></select>`)}
       ${field("Rayon", `<input id="e-category" value="${esc(d.category)}" list="catlist" class="${inp}">`)}
       ${field("Référence juridique", `<input id="e-reference" value="${esc(d.reference)}" class="${inp}">`)}
       ${field("Mots-clés", `<input id="e-keywords" value="${esc((d.keywords || []).join(", "))}" class="${inp}">`)}
@@ -988,7 +1237,7 @@ function docRow(d) {
     <span class="spine" style="background:${col}"></span>
     <div class="flex items-center gap-2">
       <span class="min-w-0 flex-1"><b class="block truncate text-[16px]">${esc(d.title)}</b>
-        <span class="block truncate text-[14px] ${missing ? "font-semibold text-fo" : "text-ink-soft"}">${missing ? "Fichier introuvable : supprimez cette fiche" : esc(d.category || "Sans rayon")}</span></span>
+        <span class="block truncate text-[14px] ${missing ? "font-semibold text-fo" : "text-ink-soft"}">${missing ? "Fichier introuvable : supprimez cette fiche" : (d.section === "gazette" ? "🗞️ Gazette" : esc(d.category || "Sans rayon"))}</span></span>
       ${missing ? "" : `<button data-act="open" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-paper" aria-label="Consulter">${ic("eye", "w-5 h-5")}</button>`}
       <button data-act="edit" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-paper" aria-label="Modifier">${ic("pencil", "w-5 h-5")}</button>
       ${isOwner() ? `<button data-act="del" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-fo-soft hover:text-fo" aria-label="Supprimer">${ic("trash", "w-5 h-5")}</button>` : ""}
@@ -1070,7 +1319,8 @@ const uniqueName = (n) => {
 const titleFrom = (n) => n.replace(/\.[a-z0-9]+$/i, "").replace(/_+/g, " ").replace(/\s+/g, " ").trim();
 const val = (x) => { x = String(x ?? "").trim(); return x && x.toLowerCase() !== "null" ? x : null; };
 const kwParse = (s) => [...new Set(String(s || "").split(",").map((k) => k.trim().toLowerCase()).filter(Boolean))];
-const blankItem = () => ({ title: "", category: "", reference: "", keywords: "", description: "", is_public: false, status: "idle", err: "" });
+const blankItem = () => ({ title: "", category: "", reference: "", keywords: "", description: "", is_public: false, section: "textes", status: "idle", err: "" });
+const guessSection = (n) => (/gazette|journal|canard|echo|écho/i.test(n) ? "gazette" : "textes");
 
 function addFiles(list) {
   let skipped = 0;
@@ -1078,7 +1328,7 @@ function addFiles(list) {
     if (/\.doc$/i.test(f.name)) { toast(`« ${f.name} » : les anciens fichiers .doc ne sont pas lisibles. Enregistrez-le en .docx depuis Word.`, "err"); return; }
     if (!kindOf(f.name)) { skipped++; return; }
     if (f.size > MAX_MB * 1048576) { toast(`« ${f.name} » dépasse ${MAX_MB} Mo. Compressez-le avant de le déposer.`, "err"); return; }
-    S.queue.push({ ...blankItem(), file: f, title: titleFrom(f.name) });
+    S.queue.push({ ...blankItem(), file: f, title: titleFrom(f.name), section: guessSection(f.name) });
   });
   if (skipped) toast(`${plural(skipped, "fichier ignoré", "fichiers ignorés")} : formats acceptés PDF, Word (.docx), Excel (.xlsx, .xls, .csv).`, "err");
   S.adminTab = "documents"; renderAdmin();
@@ -1104,7 +1354,7 @@ async function publish() {
       }
       const { data, error } = await sb.from("documents").insert({
         title: q.title.trim(), category: val(q.category), reference: val(q.reference),
-        description: val(q.description), keywords: kwParse(q.keywords), storage_path: path, is_public: false,
+        description: val(q.description), keywords: kwParse(q.keywords), storage_path: path, is_public: false, section: q.section === "gazette" ? "gazette" : "textes",
       }).select("id").single();
       if (error) throw error;
       if (q.is_public) { const e = await setPublic(data.id, true); if (e) throw e; }
@@ -1404,19 +1654,19 @@ document.addEventListener("click", async (e) => {
     case "shelf": S.cats = new Set([t.dataset.c]); S.q = ""; S.view = "library"; render(); break;
     case "atab": S.adminTab = t.dataset.t; S.editing = null; render(); break;
     case "open": {
-      const d = S.docs.find((x) => x.id === id); if (!d) break;
+      const d = S.all.find((x) => x.id === id); if (!d) break;
       const h = S.view === "library" && S.q && S.hits.q === S.q ? S.hits.byDoc.get(id) : null;
       openDoc(d, h ? { q: S.q, page: h.pages[0].page } : {});
       break;
     }
-    case "openhit": { const d = S.docs.find((x) => x.id === id); if (d) openDoc(d, { q: S.q, page: +t.dataset.p }); break; }
+    case "openhit": { const d = S.all.find((x) => x.id === id); if (d) openDoc(d, { q: S.q, page: +t.dataset.p }); break; }
     case "vfind": if ($("v-find").classList.contains("hidden")) showFind(); else hideFind(); break;
     case "vprev": goHit(V.find.cur - 1); break;
     case "vnext": goHit(V.find.cur + 1); break;
     case "vgo": goHit(+t.dataset.i); break;
     case "vlist": if (V.find.hits.length) $("v-hits").classList.toggle("hidden"); break;
     case "index": {
-      const d = S.docs.find((x) => x.id === id); if (!d || S.indexing) break;
+      const d = S.all.find((x) => x.id === id); if (!d || S.indexing) break;
       try {
         const r = await indexDoc(d);
         toast(r.pages ? `Texte indexé : ${plural(r.pages, "page")} sur ${r.total}. La recherche le trouve maintenant.` : "Aucun texte lisible dans ce fichier (PDF scanné ?).", r.pages ? "ok" : "err");
@@ -1425,7 +1675,7 @@ document.addEventListener("click", async (e) => {
     }
     case "indexAll": {
       if (S.indexing) break;
-      const todo = S.docs.filter((d) => d.text_pages == null && S.files.includes(d.storage_path));
+      const todo = S.all.filter((d) => d.text_pages == null && S.files.includes(d.storage_path));
       let okN = 0, scan = 0;
       for (const d of todo) {
         try { const r = await indexDoc(d); r.pages ? okN++ : scan++; }
@@ -1447,6 +1697,20 @@ document.addEventListener("click", async (e) => {
     case "pushOff": await disablePush(); break;
     case "pushLater": try { localStorage.setItem("fo_push_later", "1"); } catch {} render(true); toast("C'est noté. L'option reste disponible dans votre profil."); break;
     case "nmore": S.news.limit += 20; await loadNews(); render(true); break;
+    case "hlopen": S.hl.form = !S.hl.form; S.hl.warn = null; render(true); break;
+    case "hlcancel": S.hl.form = false; S.hl.warn = null; S.hl.imp = null; render(true); break;
+    case "hlsave": if (!S.hl.busy) await hlSave(); break;
+    case "hlimport": $("hl-file").click(); break;
+    case "hlimpcancel": S.hl.imp = null; render(true); break;
+    case "hlimpgo": if (!S.hl.busy) await hlImport(); break;
+    case "hldel": {
+      const h = S.hl.list.find((x) => x.id === id); if (!h) break;
+      if (!(await ask(`Retirer « ${h.label} » (${fmtDay(h.event_date)}) des temps forts ?`, "Retirer"))) break;
+      const { error } = await sb.from("highlights").delete().eq("id", id);
+      if (error) { toast(errMsg(error), "err"); break; }
+      await loadHighlights(); render(true); toast("Rendez-vous retiré");
+      break;
+    }
     case "npin": {
       const n = S.news.list.find((x) => x.id === id); if (!n) break;
       const { error } = await sb.from("news").update({ pinned: !n.pinned }).eq("id", id);
@@ -1491,7 +1755,7 @@ document.addEventListener("click", async (e) => {
     }
     case "pick": $("file-in").click(); break;
     case "unqueue": S.queue.splice(+t.dataset.i, 1); renderAdmin(); break;
-    case "declare": S.queue.push({ ...blankItem(), existing: t.dataset.f, title: titleFrom(t.dataset.f) }); renderAdmin(); break;
+    case "declare": S.queue.push({ ...blankItem(), existing: t.dataset.f, title: titleFrom(t.dataset.f), section: guessSection(t.dataset.f) }); renderAdmin(); break;
     case "publish": if (!S.busy) await publish(); break;
     case "edit": S.editing = id; renderAdmin(); break;
     case "cancelEdit": S.editing = null; renderAdmin(); break;
@@ -1500,18 +1764,18 @@ document.addEventListener("click", async (e) => {
       if (!v("title")) return toast("Ajoutez un titre.", "err");
       const { error } = await sb.from("documents").update({
         title: v("title"), category: val(v("category")), reference: val(v("reference")),
-        description: val(v("description")), keywords: kwParse(v("keywords")),
+        description: val(v("description")), keywords: kwParse(v("keywords")), section: v("section") === "gazette" ? "gazette" : "textes",
       }).eq("id", id);
       if (error) return toast(errMsg(error), "err");
       S.editing = null; await loadDocs(); renderAdmin(); toast("Modifications enregistrées");
       break;
     }
     case "del": {
-      const d = S.docs.find((x) => x.id === id); if (!d) return;
+      const d = S.all.find((x) => x.id === id); if (!d) return;
       if (!(await ask(`Supprimer « ${d.title} » ? Le fichier sera aussi retiré du stockage.`, "Supprimer"))) return;
       const { error } = await sb.from("documents").delete().eq("id", id);
       if (error) return toast(errMsg(error), "err");
-      if (!S.docs.some((x) => x.id !== id && x.storage_path === d.storage_path) && S.files.includes(d.storage_path)) {
+      if (!S.all.some((x) => x.id !== id && x.storage_path === d.storage_path) && S.files.includes(d.storage_path)) {
         const r = await sb.storage.from(BUCKET).remove([d.storage_path]);
         if (r.error) toast("Fiche supprimée, mais le fichier reste dans le stockage : " + errMsg(r.error), "err");
       }
@@ -1550,6 +1814,9 @@ document.addEventListener("change", async (e) => {
   }
   if (t.id === "news-file") { setNewsFile(t.files[0]); t.value = ""; return; }
   if (t.id === "n-pin") { S.news.draft.pinned = t.checked; return; }
+  if (t.id === "hl-file") { const f = t.files[0]; t.value = ""; if (f) await hlParse(f); return; }
+  if (t.id === "hl-kind") { S.hl.draft.kind = t.value; render(true); hlCheck(); return; }
+  if (t.id === "hl-date") { S.hl.draft.date = t.value; hlCheck(); return; }
   if (t.id === "n-notify") { S.news.draft.notify = t.checked; return; }
   if (t.dataset.role) {
     const m = S.members.find((x) => x.id === t.dataset.role);
@@ -1566,6 +1833,9 @@ document.addEventListener("input", (e) => {
   if (t.id === "v-q") { clearTimeout(findTimer); const v = t.value; findTimer = setTimeout(() => runFind(v), 400); return; }
   if (t.id === "mq") { S.memberQ = t.value; const pos = t.selectionStart; renderAdmin(); const n = $("mq"); n.focus(); n.setSelectionRange(pos, pos); return; }
   if (t.id === "n-body") { S.news.draft.body = t.value; return; }
+  if (t.id === "hl-label") { S.hl.draft.label = t.value; hlCheck(); return; }
+  if (t.id === "hl-details") { S.hl.draft.details = t.value; return; }
+  if (t.id === "hl-date") { S.hl.draft.date = t.value; hlCheck(); return; }
   if (t.id === "n-link") { S.news.draft.link = t.value; return; }
   if (t.dataset.q !== undefined && t.type !== "checkbox") S.queue[+t.dataset.q][t.dataset.f] = t.value;
 });
