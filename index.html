@@ -226,6 +226,7 @@ const P = {
   history: 'M12 6v6l4 2M3.5 12a8.5 8.5 0 1 0 2.5-6M3 4v4h4',
   chevron: 'm8.25 4.5 7.5 7.5-7.5 7.5',
   gazette: 'M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.38c.62 0 1.12.5 1.12 1.13V18a2.25 2.25 0 0 1-2.25 2.25M16.5 7.5V18a2.25 2.25 0 0 0 2.25 2.25M16.5 7.5V4.88c0-.63-.5-1.13-1.13-1.13H4.13C3.5 3.75 3 4.25 3 4.88V18a2.25 2.25 0 0 0 2.25 2.25h13.5M6 7.5h3v3H6v-3Z',
+  megaphone: 'M10.34 15.84c-.69-.06-1.39-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.7 0 1.4-.03 2.09-.09m0 9.18c.25.96.58 1.89.97 2.78.24.55.06 1.21-.47 1.52l-.66.38c-.55.32-1.26.12-1.53-.46a20.85 20.85 0 0 1-1.44-4.28m3.13.06a18.6 18.6 0 0 1 0-9.18m0 9.18c3.1.26 6.03 1.05 8.73 2.29m-8.73-11.47c3.1-.26 6.03-1.05 8.73-2.29m0 0a24.3 24.3 0 0 1 .45 2.84 24.13 24.13 0 0 1 0 6.31 24.3 24.3 0 0 1-.45 2.85m0-12a1.13 1.13 0 0 1 1.66.99v9.95a1.13 1.13 0 0 1-1.66.99',
   calendar: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5',
 };
 const ic = (n, c = "w-6 h-6") => `<svg class="${c}" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="${P[n]}"/></svg>`;
@@ -445,8 +446,9 @@ async function loadDocs() {
   const { data, error } = await sb.from("documents").select("*").order("created_at", { ascending: false });
   if (error) toast(errMsg(error), "err");
   S.all = data || [];
-  S.docs = S.all.filter((d) => d.section !== "gazette");   // textes juridiques
+  S.docs = S.all.filter((d) => !["gazette", "tract"].includes(d.section));   // textes juridiques
   S.gaz = S.all.filter((d) => d.section === "gazette");     // gazettes
+  S.tracts = S.all.filter((d) => d.section === "tract");    // tracts
 }
 async function loadAdmin() {
   const [m, f] = await Promise.all([
@@ -596,12 +598,12 @@ const GAZ_QUIPS = [
 ];
 const monthYear = (d) => new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
 function gazCard(d, big = false) {
-  const k = kindOf(d.storage_path);
+  const k = kindOf(d.storage_path), th = d.section === "tract" ? THEME.tracts : THEME.gazettes, emo = th.emo;
   return `<button data-act="open" data-id="${d.id}" class="group w-full overflow-hidden rounded-[20px] bg-white text-left shadow-[0_1px_0_#DCE0E6,0_8px_22px_-12px_rgba(28,36,48,.35)] transition hover:-translate-y-1">
-    <span class="relative block ${big ? "aspect-[4/3]" : "aspect-[3/4]"} overflow-hidden" style="background:${THEME.gazettes.bg}">
-      ${k === "pdf" ? `<span data-cover="${d.id}" class="absolute inset-0 grid place-items-center text-5xl" aria-hidden="true">🗞️</span>`
-        : `<span class="absolute inset-0 grid place-items-center text-5xl" aria-hidden="true">🗞️</span>`}
-      <span class="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[12px] font-bold text-white shadow" style="background:${THEME.gazettes.c}">${esc(monthYear(d.created_at))}</span>
+    <span class="relative block ${big ? "aspect-[4/3]" : "aspect-[3/4]"} overflow-hidden" style="background:${th.bg}">
+      ${k === "pdf" ? `<span data-cover="${d.id}" class="absolute inset-0 grid place-items-center text-5xl" aria-hidden="true">${emo}</span>`
+        : `<span class="absolute inset-0 grid place-items-center text-5xl" aria-hidden="true">${emo}</span>`}
+      <span class="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[12px] font-bold text-white shadow" style="background:${th.c}">${esc(d.section === "tract" ? new Date(d.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : monthYear(d.created_at))}</span>
     </span>
     <span class="block p-3.5">
       <b class="block text-[16px] leading-snug">${esc(d.title)}</b>
@@ -620,6 +622,25 @@ function vGazettes() {
       ${list.length > 1 ? `${sectionTitle("Les anciens numéros", `<span class="text-[15px] text-ink-soft">${plural(list.length - 1, "numéro")}</span>`)}
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">${list.slice(1).map((d) => gazCard(d)).join("")}</div>` : ""}`
     : `<div class="mt-6">${empty("La rédaction prépare le prochain numéro.", isStaff() ? "Déposez une gazette dans Gestion > Documents, rubrique « Gazette »." : "Revenez bientôt, ça va piquer (gentiment).", "✍️")}</div>`}
+  `, "pb-6")}`;
+}
+const TRACT_QUIPS = [
+  "Ce qu'on dit, on l'écrit. Ce qu'on écrit, on le distribue.",
+  "Nos positions, noir sur blanc, sans détour.",
+  "À lire, à partager, à afficher en salle de pause.",
+  "Quand FO a quelque chose à dire, ça tient sur une page.",
+];
+function vTracts() {
+  const list = S.tracts || [];
+  return `${pageHead("Les tracts", pick(TRACT_QUIPS))}
+  ${wrap(`
+    ${inviteCard()}
+    ${list.length ? `
+      ${sectionTitle("Le dernier tract")}
+      <div class="mx-auto max-w-md">${gazCard(list[0], true)}</div>
+      ${list.length > 1 ? `${sectionTitle("Les tracts précédents", `<span class="text-[15px] text-ink-soft">${plural(list.length - 1, "tract")}</span>`)}
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">${list.slice(1).map((d) => gazCard(d)).join("")}</div>` : ""}`
+    : `<div class="mt-6">${empty("Aucun tract pour l'instant.", isStaff() ? "Déposez un tract dans Gestion > Documents, rubrique « Tract »." : "Le prochain arrive bientôt.", "📣")}</div>`}
   `, "pb-6")}`;
 }
 /* Couvertures : rendu de la première page des PDF, à l'affichage */
@@ -827,15 +848,15 @@ async function hlImport() {
 /* ================= RENDU ================= */
 function render(keep = false) {
   renderNav();
-  const v = { home: vHome, library: vLibrary, gazettes: vGazettes, admin: vAdmin, profile: vProfile }[S.view] || vHome;
+  const v = { home: vHome, library: vLibrary, gazettes: vGazettes, tracts: vTracts, admin: vAdmin, profile: vProfile }[S.view] || vHome;
   $("view").innerHTML = v();
   if (S.view === "library") { scheduleHits(); renderLibList(); }
   if (S.view === "admin") renderAdmin();
-  if (S.view === "gazettes" || S.view === "home") watchCovers();
+  if (["gazettes", "tracts", "home"].includes(S.view)) watchCovers();
   if (!keep) window.scrollTo(0, 0);
 }
 function renderNav() {
-  const items = [["home", "Accueil", "home"], ["library", "Textes", "book"], ["gazettes", "Gazettes", "gazette"]];
+  const items = [["home", "Accueil", "home"], ["library", "Textes", "book"], ["gazettes", "Gazettes", "gazette"], ["tracts", "Tracts", "megaphone"]];
   if (isAdmin()) items.push(["admin", "Gestion", "shield"]);
   items.push(["profile", "Profil", "user"]);
   const n = pending().length;
@@ -855,6 +876,7 @@ const THEME = {
   admin:   { c: "#6B3FA0", bg: "#EFE8FA", emo: "🛠️" },
   profile: { c: "#B7791F", bg: "#FBF1DD", emo: "👋" },
   gazettes: { c: "#B03A6F", bg: "#FBE8F1", emo: "🗞️" },
+  tracts: { c: "#0F7C8C", bg: "#E1F3F5", emo: "📣" },
 };
 const deco = (c) => `<svg class="pointer-events-none absolute -right-12 -top-10 h-56 w-56" viewBox="0 0 200 200" aria-hidden="true"><circle cx="118" cy="82" r="72" fill="${c}" opacity=".13"/><circle cx="52" cy="150" r="30" fill="${c}" opacity=".2"/><rect x="138" y="136" width="40" height="40" rx="11" fill="${c}" opacity=".28" transform="rotate(18 158 156)"/></svg>`;
 const pageHead = (t, sub = "", view = S.view) => {
@@ -975,6 +997,8 @@ function vHome() {
 
     ${(S.gaz || []).length ? `${sectionTitle("La dernière gazette", `<button data-act="go" data-v="gazettes" class="text-[15px] font-semibold text-blue underline-offset-4 hover:underline">Toutes les gazettes</button>`)}
       <div class="mx-auto max-w-sm">${gazCard(S.gaz[0], true)}</div>` : ""}
+    ${(S.tracts || []).length ? `${sectionTitle("Le dernier tract", `<button data-act="go" data-v="tracts" class="text-[15px] font-semibold text-blue underline-offset-4 hover:underline">Tous les tracts</button>`)}
+      <div class="mx-auto max-w-sm">${gazCard(S.tracts[0], true)}</div>` : ""}
 
     ${full && cats.length ? `
       ${sectionTitle("Les rayons", `<span class="text-[15px] text-ink-soft">${plural(S.docs.length, "texte")}</span>`)}
@@ -1208,7 +1232,7 @@ function queueCard(q, i) {
     ${q.err ? `<p class="mb-3 rounded-xl bg-fo-soft px-3 py-2 text-[14px] text-fo-deep">${esc(q.err)}</p>` : ""}
     <div class="grid gap-3 sm:grid-cols-2">
       ${field("Titre affiché *", `<input data-q="${i}" data-f="title" value="${esc(q.title)}" class="${inp}">`)}
-      ${field("Rubrique", `<select data-q="${i}" data-f="section" class="${inp}"><option value="textes" ${q.section !== "gazette" ? "selected" : ""}>📚 Textes juridiques</option><option value="gazette" ${q.section === "gazette" ? "selected" : ""}>🗞️ Gazette</option></select>`)}
+      ${field("Rubrique", `<select data-q="${i}" data-f="section" class="${inp}"><option value="textes" ${q.section !== "gazette" && q.section !== "tract" ? "selected" : ""}>📚 Textes juridiques</option><option value="gazette" ${q.section === "gazette" ? "selected" : ""}>🗞️ Gazette</option><option value="tract" ${q.section === "tract" ? "selected" : ""}>📣 Tract</option></select>`)}
       ${field("Rayon", `<input data-q="${i}" data-f="category" value="${esc(q.category)}" list="catlist" placeholder="Accords, Conventions…" class="${inp}">`)}
       ${field("Référence juridique", `<input data-q="${i}" data-f="reference" value="${esc(q.reference)}" placeholder="Art. L2315-7" class="${inp}">`)}
       ${field("Mots-clés, séparés par des virgules", `<input data-q="${i}" data-f="keywords" value="${esc(q.keywords)}" placeholder="congés, formation" class="${inp}">`)}
@@ -1222,7 +1246,7 @@ function docRow(d) {
   if (S.editing === d.id) return `<li class="rounded-[22px] bg-white p-4 ring-2 ring-ink">
     <div class="grid gap-3 sm:grid-cols-2">
       ${field("Titre affiché *", `<input id="e-title" value="${esc(d.title)}" class="${inp}">`)}
-      ${field("Rubrique", `<select id="e-section" class="${inp}"><option value="textes" ${d.section !== "gazette" ? "selected" : ""}>📚 Textes juridiques</option><option value="gazette" ${d.section === "gazette" ? "selected" : ""}>🗞️ Gazette</option></select>`)}
+      ${field("Rubrique", `<select id="e-section" class="${inp}"><option value="textes" ${d.section !== "gazette" && d.section !== "tract" ? "selected" : ""}>📚 Textes juridiques</option><option value="gazette" ${d.section === "gazette" ? "selected" : ""}>🗞️ Gazette</option><option value="tract" ${d.section === "tract" ? "selected" : ""}>📣 Tract</option></select>`)}
       ${field("Rayon", `<input id="e-category" value="${esc(d.category)}" list="catlist" class="${inp}">`)}
       ${field("Référence juridique", `<input id="e-reference" value="${esc(d.reference)}" class="${inp}">`)}
       ${field("Mots-clés", `<input id="e-keywords" value="${esc((d.keywords || []).join(", "))}" class="${inp}">`)}
@@ -1238,7 +1262,7 @@ function docRow(d) {
     <span class="spine" style="background:${col}"></span>
     <div class="flex items-center gap-2">
       <span class="min-w-0 flex-1"><b class="block truncate text-[16px]">${esc(d.title)}</b>
-        <span class="block truncate text-[14px] ${missing ? "font-semibold text-fo" : "text-ink-soft"}">${missing ? "Fichier introuvable : supprimez cette fiche" : (d.section === "gazette" ? "🗞️ Gazette" : esc(d.category || "Sans rayon"))}</span></span>
+        <span class="block truncate text-[14px] ${missing ? "font-semibold text-fo" : "text-ink-soft"}">${missing ? "Fichier introuvable : supprimez cette fiche" : (d.section === "gazette" ? "🗞️ Gazette" : d.section === "tract" ? "📣 Tract" : esc(d.category || "Sans rayon"))}</span></span>
       ${missing ? "" : `<button data-act="open" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-paper" aria-label="Consulter">${ic("eye", "w-5 h-5")}</button>`}
       <button data-act="edit" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-paper" aria-label="Modifier">${ic("pencil", "w-5 h-5")}</button>
       ${isOwner() ? `<button data-act="del" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-fo-soft hover:text-fo" aria-label="Supprimer">${ic("trash", "w-5 h-5")}</button>` : ""}
@@ -1321,7 +1345,7 @@ const titleFrom = (n) => n.replace(/\.[a-z0-9]+$/i, "").replace(/_+/g, " ").repl
 const val = (x) => { x = String(x ?? "").trim(); return x && x.toLowerCase() !== "null" ? x : null; };
 const kwParse = (s) => [...new Set(String(s || "").split(",").map((k) => k.trim().toLowerCase()).filter(Boolean))];
 const blankItem = () => ({ title: "", category: "", reference: "", keywords: "", description: "", is_public: false, section: "textes", status: "idle", err: "" });
-const guessSection = (n) => (/gazette|journal|canard|echo|écho/i.test(n) ? "gazette" : "textes");
+const guessSection = (n) => (/gazette|journal|canard|echo|écho/i.test(n) ? "gazette" : /tract/i.test(n) ? "tract" : "textes");
 
 function addFiles(list) {
   let skipped = 0;
@@ -1355,7 +1379,7 @@ async function publish() {
       }
       const { data, error } = await sb.from("documents").insert({
         title: q.title.trim(), category: val(q.category), reference: val(q.reference),
-        description: val(q.description), keywords: kwParse(q.keywords), storage_path: path, is_public: false, section: q.section === "gazette" ? "gazette" : "textes",
+        description: val(q.description), keywords: kwParse(q.keywords), storage_path: path, is_public: false, section: ["gazette", "tract"].includes(q.section) ? q.section : "textes",
       }).select("id").single();
       if (error) throw error;
       if (q.is_public) { const e = await setPublic(data.id, true); if (e) throw e; }
@@ -1765,7 +1789,7 @@ document.addEventListener("click", async (e) => {
       if (!v("title")) return toast("Ajoutez un titre.", "err");
       const { error } = await sb.from("documents").update({
         title: v("title"), category: val(v("category")), reference: val(v("reference")),
-        description: val(v("description")), keywords: kwParse(v("keywords")), section: v("section") === "gazette" ? "gazette" : "textes",
+        description: val(v("description")), keywords: kwParse(v("keywords")), section: ["gazette", "tract"].includes(v("section")) ? v("section") : "textes",
       }).eq("id", id);
       if (error) return toast(errMsg(error), "err");
       S.editing = null; await loadDocs(); renderAdmin(); toast("Modifications enregistrées");
