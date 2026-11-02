@@ -622,7 +622,6 @@ function vGazettes() {
       <div class="mx-auto max-w-md">${gazCard(list[0], true)}</div>
       ${list.length > 1 ? `${sectionTitle("Les anciens numéros", `<span class="text-[15px] text-ink-soft">${plural(list.length - 1, "numéro")}</span>`)}
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">${list.slice(1).map((d) => gazCard(d)).join("")}</div>` : ""}`
-    : S.profil.role === "invite" ? `<div class="mt-6">${empty("Les gazettes sont réservées aux adhérents.", "Demandez votre accès adhérent pour les lire.", "🔒")}</div>`
     : `<div class="mt-6">${empty("La rédaction prépare le prochain numéro.", isStaff() ? "Déposez une gazette dans Gestion > Documents, rubrique « Gazette »." : "Revenez bientôt, ça va piquer (gentiment).", "✍️")}</div>`}
   `, "pb-6")}`;
 }
