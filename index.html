@@ -512,7 +512,8 @@ async function loadDocs() {
   const { data, error } = await sb.from("documents").select("*").order("created_at", { ascending: false });
   if (error) toast(errMsg(error), "err");
   S.all = data || [];
-  S.docs = S.all.filter((d) => !["gazette", "tract", "cr"].includes(d.section));   // textes juridiques
+  S.docs = S.all.filter((d) => !["gazette", "tract", "cr"].includes(d.section));   // textes juridiques (+ livret d'accueil)
+  S.guide = S.all.find((d) => d.section === "guide") || null;                         // livret d'accueil, mis en avant
   S.crs = S.all.filter((d) => d.section === "cr");          // comptes rendus
   S.gaz = S.all.filter((d) => d.section === "gazette");     // gazettes
   S.tracts = S.all.filter((d) => d.section === "tract");    // tracts
@@ -664,6 +665,21 @@ const GAZ_QUIPS = [
   "Garanties sans langue de bois, avec un peu d'humour dedans.",
 ];
 const monthYear = (d) => new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+function guideCard(where = "home") {
+  const d = S.guide; if (!d) return "";
+  const newbie = S.profil?.role === "invite";
+  return `<button data-act="open" data-id="${d.id}" class="group mt-5 flex w-full items-center gap-4 overflow-hidden rounded-[22px] bg-white p-3 pr-4 text-left ring-2 transition hover:-translate-y-0.5 hover:shadow-md" style="--tw-ring-color:#BFD0F2">
+    <span class="relative h-[92px] w-[68px] shrink-0 overflow-hidden rounded-xl bg-blue-soft shadow-sm">
+      ${kindOf(d.storage_path) === "pdf" ? `<span data-cover="${d.id}" class="absolute inset-0 grid place-items-center text-3xl" aria-hidden="true">📘</span>` : `<span class="absolute inset-0 grid place-items-center text-3xl" aria-hidden="true">📘</span>`}
+    </span>
+    <span class="min-w-0 flex-1">
+      <span class="inline-block rounded-full bg-blue-soft px-2.5 py-0.5 text-[12px] font-bold text-blue">📘 ${newbie ? "Nouveau ? Commencez par là" : "À lire en premier"}</span>
+      <b class="mt-1 block text-[17px] leading-snug">${esc(d.title || "Le livret d'accueil")}</b>
+      <span class="mt-0.5 line-clamp-2 block text-[14px] text-ink-soft">${esc(d.description || "Rémunération, temps de travail, absences… FO vous dit tout !")}</span>
+    </span>
+    <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-soft text-blue transition group-hover:scale-110">${ic("chevron", "w-4 h-4")}</span>
+  </button>`;
+}
 function gazCard(d, big = false) {
   const k = kindOf(d.storage_path), th = d.section === "tract" ? THEME.tracts : THEME.gazettes, emo = th.emo;
   return `<button data-act="open" data-id="${d.id}" class="group w-full overflow-hidden rounded-[20px] bg-white text-left shadow-[0_1px_0_#DCE0E6,0_8px_22px_-12px_rgba(28,36,48,.35)] transition hover:-translate-y-1">
@@ -1064,7 +1080,7 @@ function render(keep = false) {
   $("view").innerHTML = v();
   if (S.view === "library") { scheduleHits(); renderLibList(); }
   if (S.view === "admin") renderAdmin();
-  if (["pubs", "home"].includes(S.view)) watchCovers();
+  if (["pubs", "home", "library", "profile"].includes(S.view)) watchCovers();
   if (!keep) window.scrollTo(0, 0);
 }
 function renderNav() {
@@ -1225,6 +1241,7 @@ function vHome() {
   </section>
 
   ${wrap(`
+    ${guideCard()}
     ${inviteCard()}
     ${installCard()}
     ${pushCard()}
@@ -1269,7 +1286,7 @@ function vHome() {
 
 /* ================= BIBLIOTHÈQUE ================= */
 function vLibrary() {
-  if (S.profil.role === "invite") return pageHead("Les textes", "Un avant-goût, en attendant la suite.") + wrap(`${inviteCard()}${sectionTitle("Ouvert à tous")}<div id="lib-list"></div>${lockedPanel("textes")}`, "pb-6");
+  if (S.profil.role === "invite") return pageHead("Les textes", "Un avant-goût, en attendant la suite.") + wrap(`${guideCard("library")}${inviteCard()}${sectionTitle("Ouvert à tous")}<div id="lib-list"></div>${lockedPanel("textes")}`, "pb-6");
   const cats = allCats(), hasNone = S.docs.some((d) => !d.category);
   const chips = [...cats, ...(hasNone && cats.length ? [NONE] : [])];
   return `
@@ -1293,7 +1310,7 @@ function vLibrary() {
       </div>` : ""}
     </div>
   </div>
-  ${wrap(`<div id="lib-list" class="pt-4"></div>`)}`;
+  ${wrap(`${S.q || S.cats.size ? "" : guideCard("library")}<div id="lib-list" class="pt-4"></div>`)}`;
 }
 function renderLibList() {
   const t = terms(S.q);
@@ -1302,6 +1319,7 @@ function renderLibList() {
   const H = S.hits.q === S.q ? S.hits.byDoc : new Map();
   const list = [...meta, ...S.docs.filter((d) => catOk(d) && !meta.includes(d) && H.has(d.id))];
   if (S.sort === "az") list.sort((a, b) => a.title.localeCompare(b.title, "fr"));
+  if (S.guide && !S.q && !S.cats.size) { const i = list.indexOf(S.guide); if (i >= 0) list.splice(i, 1); }   // déjà mis en avant au-dessus
   const loading = S.hits.loading && S.hits.q === S.q;
   const head = S.profil.role === "invite" ? "" : `<div class="mb-3 flex items-center justify-between gap-3"><p class="flex items-center gap-2 text-[15px] text-ink-soft" aria-live="polite">${list.length ? plural(list.length, "texte trouvé", "textes trouvés") : ""}${loading ? `<span class="inline-flex items-center gap-1.5 text-[14px]">${spinner()} on fouille dans les pages…</span>` : ""}</p>
     <div class="flex rounded-xl bg-white p-1 text-[14px] font-semibold ring-1 ring-line" role="group" aria-label="Trier">
@@ -1360,6 +1378,7 @@ function vProfile() {
       </dl>
     </div>
     ${inviteCard()}
+    ${guideCard()}
     ${contactsLink()}
     ${installCard(true)}
     ${pushCard(true)}
@@ -1476,7 +1495,7 @@ function queueCard(q, i) {
     ${q.err ? `<p class="mb-3 rounded-xl bg-fo-soft px-3 py-2 text-[14px] text-fo-deep">${esc(q.err)}</p>` : ""}
     <div class="grid gap-3 sm:grid-cols-2">
       ${field("Titre affiché *", `<input data-q="${i}" data-f="title" value="${esc(q.title)}" class="${inp}">`)}
-      ${field("Rubrique", `<select data-q="${i}" data-f="section" class="${inp}"><option value="textes" ${!["gazette", "tract", "cr"].includes(q.section) ? "selected" : ""}>📚 Textes juridiques</option><option value="gazette" ${q.section === "gazette" ? "selected" : ""}>🗞️ Gazette</option><option value="tract" ${q.section === "tract" ? "selected" : ""}>📣 Tract</option><option value="cr" ${q.section === "cr" ? "selected" : ""}>📝 Compte rendu</option></select>`)}
+      ${field("Rubrique", `<select data-q="${i}" data-f="section" class="${inp}"><option value="textes" ${!["gazette", "tract", "cr", "guide"].includes(q.section) ? "selected" : ""}>📚 Textes juridiques</option><option value="gazette" ${q.section === "gazette" ? "selected" : ""}>🗞️ Gazette</option><option value="tract" ${q.section === "tract" ? "selected" : ""}>📣 Tract</option><option value="cr" ${q.section === "cr" ? "selected" : ""}>📝 Compte rendu</option><option value="guide" ${q.section === "guide" ? "selected" : ""}>📘 Livret d'accueil (visible par tous)</option></select>`)}
       ${field("Rayon", `<input data-q="${i}" data-f="category" value="${esc(q.category)}" list="catlist" placeholder="Accords, Conventions…" class="${inp}">`)}
       ${field("Référence juridique", `<input data-q="${i}" data-f="reference" value="${esc(q.reference)}" placeholder="Art. L2315-7" class="${inp}">`)}
       ${field("Mots-clés, séparés par des virgules", `<input data-q="${i}" data-f="keywords" value="${esc(q.keywords)}" placeholder="congés, formation" class="${inp}">`)}
@@ -1490,7 +1509,7 @@ function docRow(d) {
   if (S.editing === d.id) return `<li class="rounded-[22px] bg-white p-4 ring-2 ring-ink">
     <div class="grid gap-3 sm:grid-cols-2">
       ${field("Titre affiché *", `<input id="e-title" value="${esc(d.title)}" class="${inp}">`)}
-      ${field("Rubrique", `<select id="e-section" class="${inp}"><option value="textes" ${!["gazette", "tract", "cr"].includes(d.section) ? "selected" : ""}>📚 Textes juridiques</option><option value="gazette" ${d.section === "gazette" ? "selected" : ""}>🗞️ Gazette</option><option value="tract" ${d.section === "tract" ? "selected" : ""}>📣 Tract</option><option value="cr" ${d.section === "cr" ? "selected" : ""}>📝 Compte rendu</option></select>`)}
+      ${field("Rubrique", `<select id="e-section" class="${inp}"><option value="textes" ${!["gazette", "tract", "cr", "guide"].includes(d.section) ? "selected" : ""}>📚 Textes juridiques</option><option value="gazette" ${d.section === "gazette" ? "selected" : ""}>🗞️ Gazette</option><option value="tract" ${d.section === "tract" ? "selected" : ""}>📣 Tract</option><option value="cr" ${d.section === "cr" ? "selected" : ""}>📝 Compte rendu</option><option value="guide" ${d.section === "guide" ? "selected" : ""}>📘 Livret d'accueil (visible par tous)</option></select>`)}
       ${field("Rayon", `<input id="e-category" value="${esc(d.category)}" list="catlist" class="${inp}">`)}
       ${field("Référence juridique", `<input id="e-reference" value="${esc(d.reference)}" class="${inp}">`)}
       ${field("Mots-clés", `<input id="e-keywords" value="${esc((d.keywords || []).join(", "))}" class="${inp}">`)}
@@ -1506,7 +1525,7 @@ function docRow(d) {
     <span class="spine" style="background:${col}"></span>
     <div class="flex items-center gap-2">
       <span class="min-w-0 flex-1"><b class="block truncate text-[16px]">${esc(d.title)}</b>
-        <span class="block truncate text-[14px] ${missing ? "font-semibold text-fo" : "text-ink-soft"}">${missing ? "Fichier introuvable : supprimez cette fiche" : (d.section === "gazette" ? "🗞️ Gazette" : d.section === "tract" ? "📣 Tract" : d.section === "cr" ? "📝 Compte rendu" : esc(d.category || "Sans rayon"))}</span></span>
+        <span class="block truncate text-[14px] ${missing ? "font-semibold text-fo" : "text-ink-soft"}">${missing ? "Fichier introuvable : supprimez cette fiche" : (d.section === "gazette" ? "🗞️ Gazette" : d.section === "tract" ? "📣 Tract" : d.section === "cr" ? "📝 Compte rendu" : d.section === "guide" ? "📘 Livret d'accueil" : esc(d.category || "Sans rayon"))}</span></span>
       ${missing ? "" : `<button data-act="open" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-paper" aria-label="Consulter">${ic("eye", "w-5 h-5")}</button>`}
       <button data-act="edit" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-paper" aria-label="Modifier">${ic("pencil", "w-5 h-5")}</button>
       ${isOwner() ? `<button data-act="del" data-id="${d.id}" class="grid h-10 w-10 place-items-center rounded-xl text-ink-soft hover:bg-fo-soft hover:text-fo" aria-label="Supprimer">${ic("trash", "w-5 h-5")}</button>` : ""}
@@ -1589,7 +1608,7 @@ const titleFrom = (n) => n.replace(/\.[a-z0-9]+$/i, "").replace(/_+/g, " ").repl
 const val = (x) => { x = String(x ?? "").trim(); return x && x.toLowerCase() !== "null" ? x : null; };
 const kwParse = (s) => [...new Set(String(s || "").split(",").map((k) => k.trim().toLowerCase()).filter(Boolean))];
 const blankItem = () => ({ title: "", category: "", reference: "", keywords: "", description: "", is_public: false, section: "textes", status: "idle", err: "" });
-const guessSection = (n) => (/gazette|journal|canard|echo|écho/i.test(n) ? "gazette" : /tract/i.test(n) ? "tract" : /compte.?rendu|(^|[^a-z])(cr|pv)([^a-z]|$)|proces.?verbal|procès.?verbal/i.test(n) ? "cr" : "textes");
+const guessSection = (n) => /livret|guide.{0,12}accueil|guide.{0,6}r[ée]gional/i.test(n) ? "guide" : (/gazette|journal|canard|echo|écho/i.test(n) ? "gazette" : /tract/i.test(n) ? "tract" : /compte.?rendu|(^|[^a-z])(cr|pv)([^a-z]|$)|proces.?verbal|procès.?verbal/i.test(n) ? "cr" : "textes");
 
 function addFiles(list) {
   let skipped = 0;
@@ -1597,7 +1616,9 @@ function addFiles(list) {
     if (/\.doc$/i.test(f.name)) { toast(`« ${f.name} » : les anciens fichiers .doc ne sont pas lisibles. Enregistrez-le en .docx depuis Word.`, "err"); return; }
     if (!kindOf(f.name)) { skipped++; return; }
     if (f.size > MAX_MB * 1048576) { toast(`« ${f.name} » dépasse ${MAX_MB} Mo. Compressez-le avant de le déposer.`, "err"); return; }
-    S.queue.push({ ...blankItem(), file: f, title: titleFrom(f.name), section: guessSection(f.name) });
+    const sec = guessSection(f.name);
+    S.queue.push({ ...blankItem(), file: f, title: titleFrom(f.name), section: sec,
+      ...(sec === "guide" ? { title: "Le livret d'accueil FO", description: "Rémunération, temps de travail, absences… FO vous dit tout ! Le guide pratique des salariés de France Travail Nouvelle-Aquitaine.", keywords: "livret d'accueil, nouveaux salariés, rémunération, temps de travail, absences, congés, mutuelle, titres restaurant, CDD" } : {}) });
   });
   if (skipped) toast(`${plural(skipped, "fichier ignoré", "fichiers ignorés")} : formats acceptés PDF, Word (.docx), Excel (.xlsx, .xls, .csv).`, "err");
   S.adminTab = "documents"; renderAdmin();
@@ -1623,7 +1644,7 @@ async function publish() {
       }
       const { data, error } = await sb.from("documents").insert({
         title: q.title.trim(), category: val(q.category), reference: val(q.reference),
-        description: val(q.description), keywords: kwParse(q.keywords), storage_path: path, is_public: false, section: ["gazette", "tract", "cr"].includes(q.section) ? q.section : "textes",
+        description: val(q.description), keywords: kwParse(q.keywords), storage_path: path, is_public: false, section: ["gazette", "tract", "cr", "guide"].includes(q.section) ? q.section : "textes",
       }).select("id").single();
       if (error) throw error;
       if (q.is_public) { const e = await setPublic(data.id, true); if (e) throw e; }
@@ -2039,7 +2060,7 @@ document.addEventListener("click", async (e) => {
       if (!v("title")) return toast("Ajoutez un titre.", "err");
       const { error } = await sb.from("documents").update({
         title: v("title"), category: val(v("category")), reference: val(v("reference")),
-        description: val(v("description")), keywords: kwParse(v("keywords")), section: ["gazette", "tract", "cr"].includes(v("section")) ? v("section") : "textes",
+        description: val(v("description")), keywords: kwParse(v("keywords")), section: ["gazette", "tract", "cr", "guide"].includes(v("section")) ? v("section") : "textes",
       }).eq("id", id);
       if (error) return toast(errMsg(error), "err");
       S.editing = null; await loadDocs(); renderAdmin(); toast("Modifications enregistrées");
