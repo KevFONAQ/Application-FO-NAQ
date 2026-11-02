@@ -449,6 +449,21 @@ $("f-signup").onsubmit = (e) => {
   });
 };
 
+/* Œil : afficher ou masquer le mot de passe saisi */
+const EYE = '<path stroke-linecap="round" stroke-linejoin="round" d="M2.04 12.32a1.01 1.01 0 0 1 0-.64C3.42 7.51 7.36 4.5 12 4.5c4.64 0 8.57 3 9.96 7.18.07.2.07.43 0 .64C20.58 16.49 16.64 19.5 12 19.5c-4.64 0-8.57-3-9.96-7.18Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>';
+const EYE_OFF = '<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.22A10.48 10.48 0 0 0 1.93 12C3.23 16.34 7.24 19.5 12 19.5c.99 0 1.95-.14 2.86-.39M6.23 6.23A10.45 10.45 0 0 1 12 4.5c4.76 0 8.77 3.16 10.07 7.5a10.52 10.52 0 0 1-4.29 5.77M6.23 6.23 3 3m3.23 3.23 3.65 3.65m7.89 7.89L21 21m-3.23-3.23-3.65-3.65m0 0a3 3 0 1 0-4.24-4.24m4.24 4.24L9.88 9.88"/>';
+document.querySelectorAll('#auth input[type="password"], #recovery input[type="password"]').forEach((inp) => {
+  const box = document.createElement("span"); box.className = "relative block";
+  inp.parentNode.insertBefore(box, inp); box.appendChild(inp); inp.classList.add("pr-14");
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full text-ink-soft hover:bg-paper hover:text-ink";
+  const set = (show) => { inp.type = show ? "text" : "password"; b.setAttribute("aria-label", show ? "Masquer le mot de passe" : "Afficher le mot de passe"); b.setAttribute("aria-pressed", String(show)); b.innerHTML = `<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true">${show ? EYE_OFF : EYE}</svg>`; };
+  set(false);
+  b.addEventListener("click", () => { const pos = inp.selectionStart; set(inp.type === "password"); inp.focus(); try { inp.setSelectionRange(pos, pos); } catch {} });
+  box.appendChild(b);
+  inp.form?.addEventListener("submit", () => set(false));
+});
+
 /* Mot de passe oublié */
 $("f-reset").onsubmit = (e) => {
   e.preventDefault();
@@ -939,10 +954,59 @@ async function hlImport() {
   toast(ok ? `${plural(ok, "visite importée", "visites importées")}. Les doublons ont été ignorés.` : "Toutes ces visites étaient déjà saisies : rien à ajouter.");
 }
 
+/* ================= COORDONNÉES DES UNIONS DÉPARTEMENTALES ================= */
+const UDS = [
+  { n: "16", dep: "Charente", city: "Angoulême", addr: ["Maison des Syndicats", "10 rue de Chicoutimi", "16000 Angoulême"], tel: ["05 45 37 52 30"], mail: "udfo16@force-ouvriere.fr" },
+  { n: "17", dep: "Charente-Maritime", city: "Lagord (La Rochelle)", addr: ["Maison des syndicats", "119 bis rue des Gonthières", "17140 Lagord"], tel: ["05 46 41 30 26"], mail: "udfo17@force-ouvriere.fr" },
+  { n: "19", dep: "Corrèze", city: "Brive-la-Gaillarde", addr: ["21 rue Jean Fieyre", "BP 55", "19100 Brive-la-Gaillarde Cedex"], tel: ["05 55 24 00 54"], mail: "udfo19@force-ouvriere.fr" },
+  { n: "23", dep: "Creuse", city: "Guéret", addr: ["Maison des Associations et Syndicats (5e étage)", "11 rue de Braconne", "23000 Guéret"], tel: ["05 55 52 06 28", "06 02 32 19 62"], mail: "udforce-ouvriere23@sfr.fr" },
+  { n: "24", dep: "Dordogne", city: "Périgueux", addr: ["26 rue Bodin", "24000 Périgueux"], tel: ["05 53 53 10 66"], mail: "udfo24@force-ouvriere.fr" },
+  { n: "33", dep: "Gironde", city: "Bordeaux", addr: ["17-19 quai de la Monnaie", "33800 Bordeaux"], tel: ["05 57 95 07 50"], mail: "udfo33@force-ouvriere.fr" },
+  { n: "40", dep: "Landes", city: "Mont-de-Marsan", addr: ["Maison des Syndicats", "97 place de la Caserne Bosquet, BP 217", "40004 Mont-de-Marsan Cedex"], tel: ["05 58 46 23 23"], mail: "udfo40@force-ouvriere.fr" },
+  { n: "47", dep: "Lot-et-Garonne", city: "Agen", addr: ["9/11 rue des Frères Magen", "BP 60232", "47006 Agen Cedex 6"], tel: ["05 53 47 28 42"], mail: "udfo47@udfo47.net" },
+  { n: "64", dep: "Pyrénées-Atlantiques", city: "Bayonne", addr: ["Centre municipal de Réunions", "Rue Sainte-Ursule", "64100 Bayonne"], tel: ["05 59 55 04 54"], mail: "udfo64@force-ouvriere.fr" },
+  { n: "79", dep: "Deux-Sèvres", city: "Niort", addr: ["8 rue Joseph Cugnot", "79000 Niort"], tel: ["05 49 09 01 80"], mail: "udfo79@force-ouvriere.fr" },
+  { n: "86", dep: "Vienne", city: "Buxerolles (Poitiers)", addr: ["33 rue des Deux Communes", "BP 3", "86180 Buxerolles"], tel: ["05 49 41 05 34"], mail: "udfo86@force-ouvriere.fr" },
+  { n: "87", dep: "Haute-Vienne", city: "Limoges", addr: ["59 rue Montmailler", "87000 Limoges"], tel: ["05 55 77 61 61"], mail: "udfo87@orange.fr" },
+];
+S.udQ = "";
+const telHref = (t) => "tel:+33" + t.replace(/\D/g, "").replace(/^0/, "");
+function udCard(u) {
+  const th = THEME.contacts, map = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("Force Ouvrière " + u.addr.filter((l) => !/^BP/.test(l)).join(", "));
+  return `<article class="overflow-hidden rounded-[20px] bg-white shadow-[0_1px_0_#DCE0E6,0_6px_18px_-10px_rgba(28,36,48,.25)]">
+    <header class="flex items-center gap-3 px-4 pt-4">
+      <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl font-display text-[22px] font-bold text-white" style="background:${th.c}">${u.n}</span>
+      <span class="min-w-0"><b class="block text-[18px] leading-tight">UD FO ${esc(u.dep)}</b><span class="text-[14px] text-ink-soft">${esc(u.city)}</span></span>
+    </header>
+    <address class="px-4 pt-3 text-[15px] not-italic leading-relaxed text-ink">${u.addr.map(esc).join("<br>")}</address>
+    <div class="grid gap-2 p-4 ${u.tel.length > 1 ? "sm:grid-cols-2" : "sm:grid-cols-2"}">
+      ${u.tel.map((t) => `<a href="${telHref(t)}" class="flex items-center justify-center gap-2 rounded-2xl py-3 text-[16px] font-bold text-white" style="background:${th.c}">📞 ${esc(t)}</a>`).join("")}
+      <a href="mailto:${esc(u.mail)}" class="flex min-w-0 items-center justify-center gap-2 rounded-2xl px-2 py-3 text-[15px] font-semibold" style="background:${th.bg};color:${th.c}"><span aria-hidden="true">✉️</span><span class="truncate">${esc(u.mail)}</span></a>
+      <a href="${map}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2 rounded-2xl bg-paper py-3 text-[15px] font-semibold text-ink">📍 Itinéraire</a>
+    </div>
+  </article>`;
+}
+function vContacts() {
+  const q = norm(S.udQ).trim();
+  const list = UDS.filter((u) => !q || norm(`${u.n} ${u.dep} ${u.city} ${u.addr.join(" ")}`).includes(q));
+  return `${pageHead("Coordonnées", "Les unions départementales FO de Nouvelle-Aquitaine. Un appel, un mail, on vous répond.", "contacts")}
+  ${wrap(`
+    <label class="mt-5 flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-sm ring-2 ring-transparent focus-within:ring-blue">
+      ${ic("search", "w-5 h-5 text-ink-faint")}<input id="udq" type="search" value="${esc(S.udQ)}" placeholder="Département, numéro ou ville (ex : 33, Limoges)" class="min-w-0 flex-1 bg-transparent text-[16px] outline-none" autocomplete="off">
+    </label>
+    <div id="ud-list" class="mt-4 space-y-3">${list.map(udCard).join("") || empty("Aucune union départementale ne correspond.", "Essayez un numéro de département (16 à 87) ou un nom de ville.", "🗺️")}</div>
+    <p class="mt-6 text-[13px] text-ink-faint">Coordonnées issues des sites Force Ouvrière, vérifiées en novembre 2026.</p>
+  `, "pb-6")}`;
+}
+const contactsLink = (label = "Coordonnées des unions départementales") => `<button data-act="go" data-v="contacts" class="mt-5 flex w-full items-center gap-4 rounded-[22px] bg-white p-5 text-left ring-1 ring-line transition hover:ring-ink">
+  <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-2xl" style="background:${THEME.contacts.bg}" aria-hidden="true">📍</span>
+  <span class="flex-1"><b class="block text-[17px]">${label}</b><span class="text-[15px] text-ink-soft">Adresses et téléphones des 12 UD FO de la région</span></span>
+  ${ic("chevron", "w-5 h-5 text-ink-faint")}</button>`;
+
 /* ================= RENDU ================= */
 function render(keep = false) {
   renderNav();
-  const v = { home: vHome, library: vLibrary, pubs: vPubs, admin: vAdmin, profile: vProfile }[S.view] || vHome;
+  const v = { home: vHome, library: vLibrary, pubs: vPubs, contacts: vContacts, admin: vAdmin, profile: vProfile }[S.view] || vHome;
   $("view").innerHTML = v();
   if (S.view === "library") { scheduleHits(); renderLibList(); }
   if (S.view === "admin") renderAdmin();
@@ -973,6 +1037,7 @@ const THEME = {
   tracts: { c: "#0F7C8C", bg: "#E1F3F5", emo: "📣" },
   cr: { c: "#8C5A2B", bg: "#F6EDE3", emo: "📝" },
   pubs: { c: "#B03A6F", bg: "#FBE8F1", emo: "🗞️" },
+  contacts: { c: "#1F7A5A", bg: "#E3F4EC", emo: "📍" },
 };
 const deco = (c) => `<svg class="pointer-events-none absolute -right-12 -top-10 h-56 w-56" viewBox="0 0 200 200" aria-hidden="true"><circle cx="118" cy="82" r="72" fill="${c}" opacity=".13"/><circle cx="52" cy="150" r="30" fill="${c}" opacity=".2"/><rect x="138" y="136" width="40" height="40" rx="11" fill="${c}" opacity=".28" transform="rotate(18 158 156)"/></svg>`;
 const pageHead = (t, sub = "", view = S.view) => {
@@ -1090,6 +1155,7 @@ function vHome() {
       </button>` : ""}
 
     ${newsSection()}
+    ${contactsLink("Contacter votre union départementale")}
 
     ${(S.gaz || []).length ? `${sectionTitle("La dernière gazette", `<button data-act="go" data-v="gazettes" class="text-[15px] font-semibold text-blue underline-offset-4 hover:underline">Toutes les gazettes</button>`)}
       <div class="mx-auto max-w-sm">${gazCard(S.gaz[0], true)}</div>` : ""}
@@ -1213,6 +1279,7 @@ function vProfile() {
       </dl>
     </div>
     ${inviteCard()}
+    ${contactsLink()}
     ${installCard(true)}
     ${pushCard(true)}
     <div class="mt-5 flex items-start gap-4 rounded-[22px] bg-white p-5 text-[15px] leading-relaxed text-ink-soft">
@@ -1957,6 +2024,12 @@ document.addEventListener("change", async (e) => {
 document.addEventListener("input", (e) => {
   const t = e.target;
   if (t.id === "q") { S.q = t.value; scheduleHits(); renderLibList(); return; }
+  if (t.id === "udq") {
+    S.udQ = t.value; const q = norm(t.value).trim();
+    const list = UDS.filter((u) => !q || norm(`${u.n} ${u.dep} ${u.city} ${u.addr.join(" ")}`).includes(q));
+    $("ud-list").innerHTML = list.map(udCard).join("") || empty("Aucune union départementale ne correspond.", "Essayez un numéro de département (16 à 87) ou un nom de ville.", "🗺️");
+    return;
+  }
   if (t.id === "v-q") { clearTimeout(findTimer); const v = t.value; findTimer = setTimeout(() => runFind(v), 400); return; }
   if (t.id === "mq") { S.memberQ = t.value; const pos = t.selectionStart; renderAdmin(); const n = $("mq"); n.focus(); n.setSelectionRange(pos, pos); return; }
   if (t.id === "n-body") { S.news.draft.body = t.value; return; }
